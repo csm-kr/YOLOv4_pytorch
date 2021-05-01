@@ -1,17 +1,17 @@
-# YOLOv3
+# YOLOv4_pytorch
 
 ### TODO List
 
 - [x] Dataset
-- [x] Model
-- [x] Loss
+- [ ] Model
+- [ ] Loss
 - [X] Coder
 - [x] burn-in 하기
 - [x] scheduler 확립하기
  
 ### Experiment
-- [ ] VOC 실험하기
-- [x] COCO 실험하기
+
+- [x] Model 추가
 
 |methods        | Traning Dataset        |    Testing Dataset     | Resolution | AP      |AP50   |AP75    | Time | Fps  |
 |---------------|------------------------| ---------------------- | ---------- | ------- |-------|--------|:----:| ---- |

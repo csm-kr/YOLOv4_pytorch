@@ -4,9 +4,7 @@ import numpy as np
 import torch.nn.functional as F
 import os, sys
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
-
 from config import device
-from models.attention_layers import SEModule, CBAM
 
 
 class Mish(nn.Module):
@@ -94,20 +92,11 @@ class CSPBlock(nn.Module):
         )
 
         self.activation = activate_name[residual_activation]
-
         self.attention = "None"     #FIXME 일단은 None!
-        if self.attention == "SEnet":
-            self.attention_module = SEModule(out_channels)
-        elif self.attention == "CBAM":
-            self.attention_module = CBAM(out_channels)
-        else:
-            self.attention = None
 
     def forward(self, x):
         residual = x
         out = self.block(x)
-        if self.attention is not None:
-            out = self.attention_module(out)
         out += residual
         return out
 
