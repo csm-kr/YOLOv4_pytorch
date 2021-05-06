@@ -2,7 +2,7 @@ import argparse
 import torch
 
 # 2. device
-device_ids = [0]
+device_ids = [0, 1]
 device = torch.device('cuda:{}'.format(min(device_ids)) if torch.cuda.is_available() else 'cpu')
 
 
@@ -12,7 +12,7 @@ def parse(args):
     parser.add_argument('--port', type=str, default='2015')
     parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--batch_size', type=int, default=32)
-    parser.add_argument('--vis_step', type=int, default=100)
+    parser.add_argument('--vis_step', type=int, default=10)
     parser.add_argument('--burn_in', type=int, default=4000)  # 64000 / b_s | b_s == 16 -> 4000 | b_s == 64 -> 1000
 
     parser.add_argument('--num_workers', type=int, default=4)
