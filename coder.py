@@ -208,107 +208,25 @@ class YOLOv3_Coder(Coder):
     def encode(self, gt_boxes, gt_labels):
         return
 
-    def decode(self, gcxgcys, direct_pred=True):
+    def decode(self, gcxgcys):
         """
         gcxgcys : ([B, 13, 13, 5, 4],[B, 26, 26, 5, 4],[B, 52, 52, 5, 4])
         """
+
         gcxgcy_l, gcxgcy_m, gcxgcy_s = gcxgcys
-        cxcy_l = torch.sigmoid(gcxgcy_l[..., :2]) + self.center_anchor_l[..., :2].floor()
+        cxcy_l = gcxgcy_l[..., :2] + self.center_anchor_l[..., :2].floor()
         wh_l = torch.exp(gcxgcy_l[..., 2:]) * self.center_anchor_l[..., 2:]
         cxcywh_l = torch.cat([cxcy_l, wh_l], dim=-1)
 
-        cxcy_m = torch.sigmoid(gcxgcy_m[..., :2]) + self.center_anchor_m[..., :2].floor()
+        cxcy_m = gcxgcy_m[..., :2] + self.center_anchor_m[..., :2].floor()
         wh_m = torch.exp(gcxgcy_m[..., 2:]) * self.center_anchor_m[..., 2:]
         cxcywh_m = torch.cat([cxcy_m, wh_m], dim=-1)
 
-        cxcy_s = torch.sigmoid(gcxgcy_s[..., :2]) + self.center_anchor_s[..., :2].floor()
+        cxcy_s = gcxgcy_s[..., :2] + self.center_anchor_s[..., :2].floor()
         wh_s = torch.exp(gcxgcy_s[..., 2:]) * self.center_anchor_s[..., 2:]
         cxcywh_s = torch.cat([cxcy_s, wh_s], dim=-1)
 
         return cxcywh_l, cxcywh_m, cxcywh_s
-
-    # def decode_(self, pred):
-    #
-    #     pred_targets_1, pred_targets_2, pred_targets_3 = pred
-    #
-    #     # Scale 1
-    #     out_size_1 = pred_targets_1.size(1)
-    #     pred_targets_1 = pred_targets_1.view(-1, out_size_1, out_size_1, 3, 5 + self.num_classes)
-    #     pred_txty_1 = pred_targets_1[..., :2].sigmoid()                     # 0, 1     sigmoid(tx, ty) -> bx, by
-    #     pred_twth_1 = pred_targets_1[..., 2:4]                              # 2, 3
-    #     pred_objectness_1 = pred_targets_1[..., 4].unsqueeze(-1).sigmoid()  # 4        class probability
-    #     pred_classes_1 = pred_targets_1[..., 5:].sigmoid()                  # 20 / 80  classes
-    #
-    #     # Scale 2
-    #     out_size_2 = pred_targets_2.size(1)
-    #     pred_targets_2 = pred_targets_2.view(-1, out_size_2, out_size_2, 3, 5 + self.num_classes)
-    #     pred_txty_2 = pred_targets_2[..., :2].sigmoid()                     # 0, 1 sigmoid(tx, ty) -> bx, by
-    #     pred_twth_2 = pred_targets_2[..., 2:4]                              # 2, 3
-    #     pred_objectness_2 = pred_targets_2[..., 4].unsqueeze(-1).sigmoid()  # 4        class probability
-    #     pred_classes_2 = pred_targets_2[..., 5:].sigmoid()                  # 20 / 80  classes
-    #
-    #     # Scale 3
-    #     out_size_3 = pred_targets_3.size(1)
-    #     pred_targets_3 = pred_targets_3.view(-1, out_size_3, out_size_3, 3, 5 + self.num_classes)
-    #     pred_txty_3 = pred_targets_3[..., :2].sigmoid()                     # 0, 1 sigmoid(tx, ty) -> bx, by
-    #     pred_twth_3 = pred_targets_3[..., 2:4]                              # 2, 3
-    #     pred_objectness_3 = pred_targets_3[..., 4].unsqueeze(-1).sigmoid()  # 4        class probability
-    #     pred_classes_3 = pred_targets_3[..., 5:].sigmoid()                  # 20 / 80  classes
-    #
-    #     self.center_anchor_1 = self.center_anchor_l.to(device)           # 13 , 13
-    #     self.center_anchor_2 = self.center_anchor_m.to(device)           # 26 , 26
-    #     self.center_anchor_3 = self.center_anchor_s.to(device)           # 52 , 52
-    #
-    #     center_anchors_xy_1 = self.center_anchor_1[..., :2]  # torch.Size([13, 13, 3, 2])
-    #     center_anchors_wh_1 = self.center_anchor_1[..., 2:]  # torch.Size([13, 13, 3, 2])
-    #
-    #     center_anchors_xy_2 = self.center_anchor_2[..., :2]  # torch.Size([26, 26, 3, 2])
-    #     center_anchors_wh_2 = self.center_anchor_2[..., 2:]  # torch.Size([26, 26, 3, 2])
-    #
-    #     center_anchors_xy_3 = self.center_anchor_3[..., :2]  # torch.Size([52, 52, 3, 2])
-    #     center_anchors_wh_3 = self.center_anchor_3[..., 2:]  # torch.Size([52, 52, 3, 2])
-    #
-    #     pred_bbox_xy_1 = center_anchors_xy_1.floor().expand_as(pred_txty_1) + pred_txty_1
-    #     pred_bbox_wh_1 = center_anchors_wh_1.expand_as(pred_twth_1) * pred_twth_1.exp()
-    #     pred_bbox_1 = torch.cat([pred_bbox_xy_1, pred_bbox_wh_1], dim=-1)                    # [B, 13, 13, 3, 4]
-    #     pred_bbox_1 = pred_bbox_1.view(-1, out_size_1 * out_size_1 * 3, 4) / out_size_1      # [B, 507, 4]
-    #     pred_cls_1 = pred_classes_1.view(-1, out_size_1 * out_size_1 * 3, self.num_classes)  # [B, 507, 80]
-    #     pred_conf_1 = pred_objectness_1.view(-1, out_size_1 * out_size_1 * 3)                                # [B, 507]
-    #
-    #     pred_bbox_xy_2 = center_anchors_xy_2.floor().expand_as(pred_txty_2) + pred_txty_2
-    #     pred_bbox_wh_2 = center_anchors_wh_2.expand_as(pred_twth_2) * pred_twth_2.exp()
-    #     pred_bbox_2 = torch.cat([pred_bbox_xy_2, pred_bbox_wh_2], dim=-1)                    # [B, 26, 26, 3, 4]
-    #     pred_bbox_2 = pred_bbox_2.view(-1, out_size_2 * out_size_2 * 3, 4) / out_size_2      # [B, 2028, 4]
-    #     pred_cls_2 = pred_classes_2.view(-1, out_size_2 * out_size_2 * 3, self.num_classes)  # [B, 2028, 80]
-    #     pred_conf_2 = pred_objectness_2.view(-1, out_size_2 * out_size_2 * 3)                # [B, 2028]
-    #
-    #     pred_bbox_xy_3 = center_anchors_xy_3.floor().expand_as(pred_txty_3) + pred_txty_3
-    #     pred_bbox_wh_3 = center_anchors_wh_3.expand_as(pred_twth_3) * pred_twth_3.exp()
-    #     pred_bbox_3 = torch.cat([pred_bbox_xy_3, pred_bbox_wh_3], dim=-1)                    # [B, 52, 52, 3, 4]
-    #     pred_bbox_3 = pred_bbox_3.view(-1, out_size_3 * out_size_3 * 3, 4) / out_size_3      # [B, 8112, 4]
-    #     pred_cls_3 = pred_classes_3.view(-1, out_size_3 * out_size_3 * 3, self.num_classes)  # [B, 8112, 80]
-    #     pred_conf_3 = pred_objectness_3.view(-1, out_size_3 * out_size_3 * 3)                # [B, 8112]
-    #
-    #     pred_bbox = torch.cat([pred_bbox_1, pred_bbox_2, pred_bbox_3], dim=1)                # [B, 10647, 4]
-    #     pred_cls = torch.cat([pred_cls_1, pred_cls_2, pred_cls_3], dim=1)                    # [B, 10647, 80]
-    #     pred_conf = torch.cat([pred_conf_1, pred_conf_2, pred_conf_3], dim=1)                # [B, 10647]
-    #
-    #     return pred_bbox, pred_cls, pred_conf
-    #
-    # def post_processing(self, pred, is_demo=False):
-    #     if is_demo:
-    #         self.assign_anchors_to_cpu()
-    #         # pred = [pred[0].to('cpu'), pred[1].to('cpu'), pred[2].to('cpu')]
-    #
-    #     pred_bbox, pred_cls, pred_conf = self.decode_(pred)
-    #     # [1, 10647, 4]
-    #     # [1, 10647, 80]
-    #     # [1, 10647]
-    #
-    #     # output bbox of yolo model is center coord
-    #     pred_bboxes = cxcy_to_xy(pred_bbox).squeeze()
-    #     pred_scores = (pred_cls * pred_conf.unsqueeze(-1)).squeeze()
-    #     return pred_bboxes, pred_scores
 
     def postprocessing(self, pred, is_demo=False):
 
@@ -321,25 +239,30 @@ class YOLOv3_Coder(Coder):
             pred_targets_s = pred_targets_s.to('cpu')
 
         # for Large / Medium/ Small Scale
-        size_l, pred_targets_l, pred_bbox_l, pred_objectness_l, pred_classes_l = self.split_preds(pred_targets_l)
-        size_m, pred_targets_m, pred_bbox_m, pred_objectness_m, pred_classes_m = self.split_preds(pred_targets_m)
-        size_s, pred_targets_s, pred_bbox_s, pred_objectness_s, pred_classes_s = self.split_preds(pred_targets_s)
+        size_l, pred_txty_l, pred_twth_l, pred_objectness_l, pred_classes_l = self.split_preds(pred_targets_l)
+        size_m, pred_txty_m, pred_twth_m, pred_objectness_m, pred_classes_m = self.split_preds(pred_targets_m)
+        size_s, pred_txty_s, pred_twth_s, pred_objectness_s, pred_classes_s = self.split_preds(pred_targets_s)
 
-        # box decode
+        # decode 에 넣기위해서 변경
+        pred_bbox_l = torch.cat([pred_txty_l, pred_twth_l], dim=-1)
+        pred_bbox_m = torch.cat([pred_txty_m, pred_twth_m], dim=-1)
+        pred_bbox_s = torch.cat([pred_txty_s, pred_twth_s], dim=-1)
+
+        # box decode (output is cxcy)
         pred_bbox_l, pred_bbox_m, pred_bbox_s = self.decode((pred_bbox_l, pred_bbox_m, pred_bbox_s))
 
         # Clean up the code shape
-        pred_bbox_l = pred_bbox_l.view(-1, size_l * size_l * 3, 4) / size_l                  # [B, 507, 4]
-        pred_cls_l = pred_classes_l.view(-1, size_l * size_l * 3, self.num_classes)          # [B, 507, 80]
-        pred_conf_l = pred_objectness_l.view(-1, size_l * size_l * 3)                        # [B, 507]
+        pred_bbox_l = pred_bbox_l.reshape(-1, size_l * size_l * 3, 4) / size_l                  # [B, 507, 4]
+        pred_cls_l = pred_classes_l.reshape(-1, size_l * size_l * 3, self.num_classes)          # [B, 507, 80]
+        pred_conf_l = pred_objectness_l.reshape(-1, size_l * size_l * 3)                        # [B, 507]
 
-        pred_bbox_m = pred_bbox_m.view(-1, size_m * size_m * 3, 4) / size_m                  # [B, 2028, 4]
-        pred_cls_m = pred_classes_m.view(-1, size_m * size_m * 3, self.num_classes)          # [B, 2028, 80]
-        pred_conf_m = pred_objectness_m.view(-1, size_m * size_m * 3)                        # [B, 2028]
+        pred_bbox_m = pred_bbox_m.reshape(-1, size_m * size_m * 3, 4) / size_m                  # [B, 2028, 4]
+        pred_cls_m = pred_classes_m.reshape(-1, size_m * size_m * 3, self.num_classes)          # [B, 2028, 80]
+        pred_conf_m = pred_objectness_m.reshape(-1, size_m * size_m * 3)                        # [B, 2028]
 
-        pred_bbox_s = pred_bbox_s.view(-1, size_s * size_s * 3, 4) / size_s                  # [B, 8112, 4]
-        pred_cls_s = pred_classes_s.view(-1, size_s * size_s * 3, self.num_classes)          # [B, 8112, 80]
-        pred_conf_s = pred_objectness_s.view(-1, size_s * size_s * 3)                        # [B, 8112]
+        pred_bbox_s = pred_bbox_s.reshape(-1, size_s * size_s * 3, 4) / size_s                  # [B, 8112, 4]
+        pred_cls_s = pred_classes_s.reshape(-1, size_s * size_s * 3, self.num_classes)          # [B, 8112, 80]
+        pred_conf_s = pred_objectness_s.reshape(-1, size_s * size_s * 3)                        # [B, 8112]
 
         # concat predictions
         pred_bbox = torch.cat([pred_bbox_l, pred_bbox_m, pred_bbox_s], dim=1)                # [B, 10647, 4]
@@ -352,25 +275,16 @@ class YOLOv3_Coder(Coder):
 
         return pred_bboxes, pred_scores
 
-    def split_preds(self, pred, for_loss=False):
+    def split_preds(self, pred):
 
-        if for_loss:
-            out_size = pred.size(1)
-            pred = pred.view(-1, out_size, out_size, 3, 5 + self.num_classes)
-            pred_txty = pred[..., :2].sigmoid()  # 0, 1 sigmoid(tx, ty) -> bx, by
-            pred_twth = pred[..., 2:4]
-            pred_objectness = pred[..., 4].unsqueeze(-1).sigmoid()  # 4            class probability
-            pred_classes = pred[..., 5:].sigmoid()  # 20 / 80      classes
-
-            return out_size, pred, pred_txty, pred_twth, pred_objectness, pred_classes
-
-        out_size = pred.size(1)
+        out_size = pred.size(1)                                              # post processing 에서 사용
         pred = pred.view(-1, out_size, out_size, 3, 5 + self.num_classes)
-        pred_bbox = pred[..., :4]                                            # 0, 1, 2, 3   xywh
+        pred_cxcy = pred[..., :2].sigmoid()                                  # 0, 1 xy
+        pred_wh = pred[..., 2:4]                                             # 2, 3 wh
         pred_objectness = pred[..., 4].unsqueeze(-1).sigmoid()               # 4            class probability
         pred_classes = pred[..., 5:].sigmoid()                               # 20 / 80      classes
 
-        return out_size, pred, pred_bbox, pred_objectness, pred_classes
+        return out_size, pred_cxcy, pred_wh, pred_objectness, pred_classes
 
 
 if __name__ == '__main__':
