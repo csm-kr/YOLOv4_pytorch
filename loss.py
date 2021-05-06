@@ -1,9 +1,11 @@
 import os, sys
+import math
 
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 import torch.nn as nn
 import torch
 from config import device
+from utils import cxcy_to_xy
 
 
 class Yolov3_Loss(nn.Module):
@@ -14,6 +16,49 @@ class Yolov3_Loss(nn.Module):
         self.mse = nn.MSELoss()
         self.bce = nn.BCELoss(reduction='none')
         self.num_classes = self.coder.num_classes
+        # self.coder.assign_anchors_to_cpu()
+
+    def ciou_loss(self, boxes1, boxes2):
+
+        # ====== Calculate IOU ======
+        boxes1_area = (boxes1[..., 2] - boxes1[..., 0]) * (boxes1[..., 3] - boxes1[..., 1])  # (x2-x1)*(y2-y1)
+        boxes2_area = (boxes2[..., 2] - boxes2[..., 0]) * (boxes2[..., 3] - boxes2[..., 1])
+
+        inter_left_up = torch.max(boxes1[..., :2], boxes2[..., :2])
+        inter_right_down = torch.min(boxes1[..., 2:], boxes2[..., 2:])
+
+        inter_section = torch.max(inter_right_down - inter_left_up, torch.zeros_like(inter_right_down))
+        inter_area = inter_section[..., 0] * inter_section[..., 1]
+        union_area = boxes1_area + boxes2_area - inter_area
+        ious = 1.0 * inter_area / union_area
+
+        # ====== Calculate IOU ======
+        # cal outer boxes
+        outer_left_up = torch.min(boxes1[..., :2], boxes2[..., :2])
+        outer_right_down = torch.max(boxes1[..., 2:], boxes2[..., 2:])
+        outer = torch.max(outer_right_down - outer_left_up, torch.zeros_like(inter_right_down))
+        outer_diagonal_line = torch.pow(outer[..., 0], 2) + torch.pow(outer[..., 1], 2)
+
+        # cal center distance
+        boxes1_center = (boxes1[..., :2] + boxes1[..., 2:]) * 0.5
+        boxes2_center = (boxes2[..., :2] + boxes2[..., 2:]) * 0.5
+        center_dis = torch.pow(boxes1_center[..., 0] - boxes2_center[..., 0], 2) + \
+                     torch.pow(boxes1_center[..., 1] - boxes2_center[..., 1], 2)
+
+        # cal penalty term
+        # cal width,height
+        boxes1_size = torch.max(boxes1[..., 2:] - boxes1[..., :2], torch.zeros_like(inter_right_down))  # w, h
+        boxes2_size = torch.max(boxes2[..., 2:] - boxes2[..., :2], torch.zeros_like(inter_right_down))  # w, h
+
+        v = (4 / (math.pi ** 2)) * torch.pow(
+            torch.atan((boxes1_size[..., 0] / torch.clamp(boxes1_size[..., 1], min=1e-6))) -
+            torch.atan((boxes2_size[..., 0] / torch.clamp(boxes2_size[..., 1], min=1e-6))), 2)
+        alpha = v / (1 - ious + v)
+
+        # cal ciou
+        cious = ious - (center_dis / outer_diagonal_line + alpha * v)
+
+        return cious
 
     def forward(self, pred, gt_boxes, gt_labels):
         """
@@ -32,19 +77,51 @@ class Yolov3_Loss(nn.Module):
         pred_targets_l, pred_targets_m, pred_targets_s = pred
 
         # for Large / Medium/ Small Scale
-        size_l, pred_targets_l, pred_txty_l, pred_twth_l, pred_objectness_l, pred_classes_l = self.coder.split_preds(pred_targets_l, for_loss=True)
-        size_m, pred_targets_m, pred_txty_m, pred_twth_m, pred_objectness_m, pred_classes_m = self.coder.split_preds(pred_targets_m, for_loss=True)
-        size_s, pred_targets_s, pred_txty_s, pred_twth_s, pred_objectness_s, pred_classes_s = self.coder.split_preds(pred_targets_s, for_loss=True)
+        size_l, pred_txty_l, pred_twth_l, pred_objectness_l, pred_classes_l = self.coder.split_preds(pred_targets_l)
+        size_m, pred_txty_m, pred_twth_m, pred_objectness_m, pred_classes_m = self.coder.split_preds(pred_targets_m)
+        size_s, pred_txty_s, pred_twth_s, pred_objectness_s, pred_classes_s = self.coder.split_preds(pred_targets_s)
 
-        # for each scale [gt를 pred의 형식과 맞춘다]
+        # -------------- iou loss 에 사용하기 위해서 decode 를 하는 부분 --------------
+        ##################################################################################################
+        # pred iou1
+        pred_bbox_l = torch.cat([pred_txty_l, pred_twth_l], dim=-1)
+        pred_bbox_m = torch.cat([pred_txty_m, pred_twth_m], dim=-1)
+        pred_bbox_s = torch.cat([pred_txty_s, pred_twth_s], dim=-1)
+
+        # pred iou2
+        pred_bbox_l, pred_bbox_m, pred_bbox_s = self.coder.decode((pred_bbox_l, pred_bbox_m, pred_bbox_s))
+
+        # pred_iou3
+        pred_x1y1x2y2_l = cxcy_to_xy(pred_bbox_l)
+        pred_x1y1x2y2_m = cxcy_to_xy(pred_bbox_m)
+        pred_x1y1x2y2_s = cxcy_to_xy(pred_bbox_s)
+
+        # target 만들기
         various_targets = self.coder.build_target(gt_boxes, gt_labels)
         gt_prop_txty_l, gt_twth_l, gt_objectness_l, gt_classes_l, ignore_mask_l = various_targets[0]
         gt_prop_txty_m, gt_twth_m, gt_objectness_m, gt_classes_m, ignore_mask_m = various_targets[1]
         gt_prop_txty_s, gt_twth_s, gt_objectness_s, gt_classes_s, ignore_mask_s = various_targets[2]
 
+        ##################################################################################################
+        # gt iou1
+        gt_bbox_l = torch.cat([gt_prop_txty_l, gt_twth_l], dim=-1).to(device)
+        gt_bbox_m = torch.cat([gt_prop_txty_m, gt_twth_m], dim=-1).to(device)
+        gt_bbox_s = torch.cat([gt_prop_txty_s, gt_twth_s], dim=-1).to(device)
+
+        # gt iou2
+        gt_bbox_l, gt_bbox_m, gt_bbox_s = self.coder.decode((gt_bbox_l, gt_bbox_m, gt_bbox_s))
+
+        # gt_iou3
+        gt_x1y1x2y2_l = cxcy_to_xy(gt_bbox_l)
+        gt_x1y1x2y2_m = cxcy_to_xy(gt_bbox_m)
+        gt_x1y1x2y2_s = cxcy_to_xy(gt_bbox_s)
+
         # ----------------------- loss for larage -----------------------
         xy_loss_l = torch.mean((gt_prop_txty_l - pred_txty_l.cpu()) ** 2, dim=-1) * gt_objectness_l.squeeze(-1)
         wh_loss_l = torch.mean((gt_twth_l - pred_twth_l.cpu()) ** 2, dim=-1) * gt_objectness_l.squeeze(-1)
+        xy_loss_l = self.ciou_loss(gt_x1y1x2y2_l.cpu(), pred_x1y1x2y2_l.cpu()) * gt_objectness_l.squeeze(-1)
+        wh_loss_l = self.ciou_loss(gt_x1y1x2y2_l.cpu(), pred_x1y1x2y2_l.cpu()) * gt_objectness_l.squeeze(-1)
+
         obj_loss_l = gt_objectness_l * self.bce(pred_objectness_l.cpu(), gt_objectness_l)
         no_obj_loss_l = (1 - gt_objectness_l) * self.bce(pred_objectness_l.cpu(),
                                                          gt_objectness_l) * ignore_mask_l.unsqueeze(-1)
@@ -53,6 +130,9 @@ class Yolov3_Loss(nn.Module):
         # ----------------------- loss for medium -----------------------
         xy_loss_m = torch.mean((gt_prop_txty_m - pred_txty_m.cpu()) ** 2, dim=-1) * gt_objectness_m.squeeze(-1)
         wh_loss_m = torch.mean((gt_twth_m - pred_twth_m.cpu()) ** 2, dim=-1) * gt_objectness_m.squeeze(-1)
+        xy_loss_m = self.ciou_loss(gt_x1y1x2y2_m.cpu(), pred_x1y1x2y2_m.cpu()) * gt_objectness_m.squeeze(-1)
+        wh_loss_m = self.ciou_loss(gt_x1y1x2y2_m.cpu(), pred_x1y1x2y2_m.cpu()) * gt_objectness_m.squeeze(-1)
+
         obj_loss_m = gt_objectness_m * self.bce(pred_objectness_m.cpu(), gt_objectness_m)
         no_obj_loss_m = (1 - gt_objectness_m) * self.bce(pred_objectness_m.cpu(),
                                                          gt_objectness_m) * ignore_mask_m.unsqueeze(-1)
@@ -61,6 +141,9 @@ class Yolov3_Loss(nn.Module):
         # ----------------------- loss for small -----------------------
         xy_loss_s = torch.mean((gt_prop_txty_s - pred_txty_s.cpu()) ** 2, dim=-1) * gt_objectness_s.squeeze(-1)
         wh_loss_s = torch.mean((gt_twth_s - pred_twth_s.cpu()) ** 2, dim=-1) * gt_objectness_s.squeeze(-1)
+        xy_loss_s = self.ciou_loss(gt_x1y1x2y2_s.cpu(), pred_x1y1x2y2_s.cpu()) * gt_objectness_s.squeeze(-1)
+        wh_loss_s = self.ciou_loss(gt_x1y1x2y2_s.cpu(), pred_x1y1x2y2_s.cpu()) * gt_objectness_s.squeeze(-1)
+
         obj_loss_s = gt_objectness_s * self.bce(pred_objectness_s.cpu(), gt_objectness_s)
         no_obj_loss_s = (1 - gt_objectness_s) * self.bce(pred_objectness_s.cpu(),
                                                          gt_objectness_s) * ignore_mask_s.unsqueeze(-1)
@@ -69,6 +152,8 @@ class Yolov3_Loss(nn.Module):
         # ----------------------- whole losses -----------------------
         xy_loss = 5 * (xy_loss_l.sum() + xy_loss_m.sum() + xy_loss_s.sum()) / batch_size
         wh_loss = 5 * (wh_loss_l.sum() + wh_loss_m.sum() + wh_loss_s.sum()) / batch_size
+        xy_loss = 2.5 * (xy_loss_l.sum() + xy_loss_m.sum() + xy_loss_s.sum()) / batch_size
+        wh_loss = 2.5 * (wh_loss_l.sum() + wh_loss_m.sum() + wh_loss_s.sum()) / batch_size
         obj_loss = 1 * (obj_loss_l.sum() + obj_loss_m.sum() + obj_loss_s.sum()) / batch_size
         no_obj_loss = 0.5 * (no_obj_loss_l.sum() + no_obj_loss_m.sum() + no_obj_loss_s.sum()) / batch_size
         cls_loss = 1 * (classes_loss_l.sum() + classes_loss_m.sum() + classes_loss_s.sum()) / batch_size

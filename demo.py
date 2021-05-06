@@ -117,7 +117,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--epoch', type=int, default=239)
+    parser.add_argument('--epoch', type=int, default=265)
     # parser.add_argument('--epoch', type=int, default=268)
 
     parser.add_argument('--save_path', type=str, default='./saves')
