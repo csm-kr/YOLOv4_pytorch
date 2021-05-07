@@ -8,7 +8,7 @@ from config import device
 from utils import cxcy_to_xy
 
 
-class Yolov3_Loss(nn.Module):
+class YOLOv4_Loss(nn.Module):
     def __init__(self, coder):
         super().__init__()
 
@@ -198,11 +198,11 @@ if __name__ == "__main__":
     pred2_ = torch.randn([2, 26, 26, 255]).to(device)
     pred3_ = torch.randn([2, 52, 52, 255]).to(device)
 
-    from coder import YOLOv3_Coder
+    from coder import YOLOv4_Coder
 
-    yolov3_coder = YOLOv3_Coder(loss_opts)
+    yolov4_coder = YOLOv4_Coder(loss_opts)
 
-    criterion = Yolov3_Loss(coder=yolov3_coder)
+    criterion = YOLOv4_Loss(coder=yolov4_coder)
 
     # ====== 학습 시작 가정 =====
     # torch.Size( [N, 4] )

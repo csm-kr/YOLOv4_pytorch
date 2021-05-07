@@ -109,9 +109,9 @@ def demo(opts, coder, model, img_type='jpg'):
 
 if __name__ == '__main__':
 
-    from model_v3 import YoloV3, Darknet53
-    from model import YoloV4, CSPDarknet53
-    from coder import YOLOv3_Coder
+    from model_v3 import YoloV4, Darknet53
+    from model import YOLOv4, CSPDarknet53
+    from coder import YOLOv4_Coder
     import argparse
 
 
@@ -121,7 +121,7 @@ if __name__ == '__main__':
     # parser.add_argument('--epoch', type=int, default=268)
 
     parser.add_argument('--save_path', type=str, default='./saves')
-    # parser.add_argument('--save_file_name', type=str, default='yolov3_darknet53_coco')
+    # parser.add_argument('--save_file_name', type=str, default='yolov4_darknet53_coco')
     parser.add_argument('--save_file_name', type=str, default='yolov4_cspdarknet53_coco')
     parser.add_argument('--conf_thres', type=float, default=0.05)
 
@@ -145,7 +145,7 @@ if __name__ == '__main__':
         demo_opts.n_classes = 80
 
     # model = YoloV3(baseline=Darknet53(pretrained=False), num_classes=demo_opts.num_classes).to(device)
-    model = YoloV4(backbone=CSPDarknet53(pretrained=False), num_classes=demo_opts.num_classes).to(device)
+    model = YOLOv4(backbone=CSPDarknet53(pretrained=False), num_classes=demo_opts.num_classes).to(device)
     model = torch.nn.DataParallel(module=model, device_ids=device_ids)
 
     # use custom training pth file
@@ -157,7 +157,7 @@ if __name__ == '__main__':
     model = model.to(device)
     model.eval()
 
-    coder = YOLOv3_Coder(demo_opts)
+    coder = YOLOv4_Coder(demo_opts)
     demo(demo_opts, coder, model, 'jpg')
 
 

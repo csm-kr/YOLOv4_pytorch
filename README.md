@@ -13,12 +13,15 @@
 
 - [x] Model 추가
 
-|methods        | Traning Dataset        |    Testing Dataset     | Resolution | AP      |AP50   |AP75    | Time | Fps  |
-|---------------|------------------------| ---------------------- | ---------- | ------- |-------|--------|:----:| ---- |
-|papers         | COCOtrain2017          |  COCO test-dev         | 416 x 416  |  31.0   |55.3   |34.4    |29    |34.48 |
-|papers         | COCOtrain2017          |  COCOval2017(minival)  | 416 x 416  |  -      |-      |-       |-     |-     |
-|yolov3 + CSP   | COCOtrain2017          |  COCO test-dev         | 416 x 416  |- |-   |-|-|- |
-|yolov3 + CSP   | COCOtrain2017          |  COCOval2017(minival)  | 416 x 416  |**38.0** |59.9  |40.8   |||
+|methods                   | Traning Dataset        |    Testing Dataset     | Resolution | AP      |AP50   |AP75    | Time | Fps  |
+|--------------------------|------------------------| ---------------------- | ---------- | ------- |-------|--------|:----:| ---- |
+|papers                    | COCOtrain2017          |  COCO test-dev         | 416 x 416  |  31.0   |55.3   |34.4    |29    |34.48 |
+|papers                    | COCOtrain2017          |  COCOval2017(minival)  | 416 x 416  |  -      |-      |-       |-     |-     |
+|yolov3 + CSP              | COCOtrain2017          |  COCO test-dev         | 416 x 416  |- |-   |-|-|- |
+|yolov3 + CSP              | COCOtrain2017          |  COCOval2017(minival)  | 416 x 416  |**38.0** |59.9  |40.8   |||
+|yolov3 + CSP + giou loss  | COCOtrain2017          |  COCO test-dev         | 416 x 416  |? |? |?  |||
+|yolov3 + CSP + giou loss  | COCOtrain2017          |  COCOval2017(minival)  | 416 x 416  |? |? |?   |||
+
 
 268 epoch 기준
 

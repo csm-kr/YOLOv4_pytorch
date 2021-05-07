@@ -98,9 +98,9 @@ if __name__ == '__main__':
     from dataset.voc_dataset import VOC_Dataset
     from config import device, device_ids
     # from model import YoloV3, Darknet53
-    from model import YoloV4, CSPDarknet53
-    from loss import Yolov3_Loss
-    from coder import YOLOv3_Coder
+    from model import YOLOv4, CSPDarknet53
+    from loss import YOLOv4_Loss
+    from coder import YOLOv4_Coder
     import argparse
 
     parser = argparse.ArgumentParser()
@@ -148,13 +148,13 @@ if __name__ == '__main__':
                                               pin_memory=True)
 
     # 6. network
-    model = YoloV4(backbone=CSPDarknet53(pretrained=True), num_classes=test_opts.num_classes).to(device)
+    model = YOLOv4(backbone=CSPDarknet53(pretrained=True), num_classes=test_opts.num_classes).to(device)
     # model = YoloV3(baseline=Darknet53(), num_classes=test_opts.num_classes).to(device)
     model = torch.nn.DataParallel(module=model, device_ids=device_ids)
 
-    yolov3_coder = YOLOv3_Coder(test_opts)
+    yolov4_coder = YOLOv4_Coder(test_opts)
     #7. criterion
-    criterion = Yolov3_Loss(coder=yolov3_coder)
+    criterion = YOLOv4_Loss(coder=yolov4_coder)
 
     # 12. test
     test(epoch=test_opts.epoch,
@@ -162,7 +162,7 @@ if __name__ == '__main__':
          test_loader=test_loader,
          model=model,
          criterion=criterion,
-         coder=yolov3_coder,
+         coder=yolov4_coder,
          opts=test_opts)
 
 

@@ -5,13 +5,13 @@ import visdom
 from train import train
 from test import test
 from torch.optim.lr_scheduler import MultiStepLR
-from model import YoloV4, CSPDarknet53
+from model import YOLOv4, CSPDarknet53
 
 import os
 import sys
 from config import device, device_ids
-from coder import YOLOv3_Coder
-from loss import Yolov3_Loss
+from coder import YOLOv4_Coder
+from loss import YOLOv4_Loss
 from config import parse
 
 import torch.backends.cudnn as cudnn
@@ -55,14 +55,14 @@ def main():
                                               pin_memory=True)
     # 6. network
     # model = YoloV3(baseline=Darknet53(pretrained=True), num_classes=opts.num_classes).to(device)
-    model = YoloV4(backbone=CSPDarknet53(pretrained=True), num_classes=opts.num_classes).to(device)
+    model = YOLOv4(backbone=CSPDarknet53(pretrained=True), num_classes=opts.num_classes).to(device)
     model = torch.nn.DataParallel(model, device_ids=device_ids)
 
     # 6-1. coder
-    yolov3_coder = YOLOv3_Coder(opts=opts)
+    yolov4_coder = YOLOv4_Coder(opts=opts)
 
     # 7. loss
-    criterion = Yolov3_Loss(coder=yolov3_coder)
+    criterion = YOLOv4_Loss(coder=yolov4_coder)
 
     # 8. optimizer
     optimizer = torch.optim.SGD(params=model.parameters(),
@@ -105,7 +105,7 @@ def main():
              test_loader=test_loader,
              model=model,
              criterion=criterion,
-             coder=yolov3_coder,
+             coder=yolov4_coder,
              opts=opts)
 
         scheduler.step()

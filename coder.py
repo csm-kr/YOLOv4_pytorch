@@ -5,7 +5,7 @@ import numpy as np
 import torch
 from math import sqrt
 from abc import ABCMeta, abstractmethod
-from anchor import YOLOv3_Anchor
+from anchor import YOLOv4_Anchor
 import torch.nn.functional as F
 from config import device
 from utils import cxcy_to_xy, xy_to_cxcy, find_jaccard_overlap
@@ -22,11 +22,11 @@ class Coder(metaclass=ABCMeta):
         pass
 
 
-class YOLOv3_Coder(Coder):
+class YOLOv4_Coder(Coder):
     def __init__(self, opts):
         super().__init__()
         self.data_type = opts.data_type
-        self.anchor = YOLOv3_Anchor()
+        self.anchor = YOLOv4_Anchor()
 
         self.anchor_whs = self.anchor.anchor_whs
         self.center_anchor_l, self.center_anchor_m, self.center_anchor_s = self.anchor.create_anchors()  # Anchor
@@ -288,5 +288,10 @@ class YOLOv3_Coder(Coder):
 
 
 if __name__ == '__main__':
-    coder = YOLOv3_Coder('coco')
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--data_type', type=str, default='coco')
+    coder_opts = parser.parse_args()
+
+    coder = YOLOv4_Coder(coder_opts)
     coder.assign_anchors_to_device()

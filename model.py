@@ -490,9 +490,9 @@ class PredictNet(nn.Module):
                 m.bias.data.zero_()
 
 
-class YoloV4(nn.Module):
+class YOLOv4(nn.Module):
     def __init__(self, backbone, num_classes=80):
-        super(YoloV4, self).__init__()
+        super(YOLOv4, self).__init__()
         self.backbone = backbone
         feature_channels = backbone.feature_channels[-3:]  # [256, 512, 1024]
         self.SPP = SpatialPyramidPooling(feature_channels)

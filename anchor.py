@@ -10,14 +10,14 @@ from utils import cxcy_to_xy
 class Anchor(metaclass=ABCMeta):
     def __init__(self, model_name='yolo'):
         self.model_name = model_name.lower()
-        assert model_name in ['yolo', 'ssd', 'retina', 'yolov3']
+        assert model_name in ['yolo', 'ssd', 'retina', 'yolov3', 'yolov4']
 
     @abstractmethod
     def create_anchors(self):
         pass
 
 
-class YOLOv3_Anchor(Anchor):
+class YOLOv4_Anchor(Anchor):
     def __init__(self):
         super().__init__()
         # self.anchor_whs = [(1.3221, 1.73145), (3.19275, 4.00944), (5.05587, 8.09892), (9.47112, 4.84053), (11.2364, 10.0071)]
@@ -78,7 +78,7 @@ class YOLOv3_Anchor(Anchor):
 
 
 if __name__ == '__main__':
-    anchor = YOLOv3_Anchor()
+    anchor = YOLOv4_Anchor()
 
     center_anchors_l, center_anchors_m, center_anchors_s = anchor.create_anchors()
 
