@@ -18,47 +18,63 @@ class Yolov3_Loss(nn.Module):
         self.num_classes = self.coder.num_classes
         # self.coder.assign_anchors_to_cpu()
 
-    def ciou_loss(self, boxes1, boxes2):
+    def giou_loss(self, boxes1, boxes2):
+        """
+        boxes1 [B, size, size, 3, 4]
+        """
+        # iou loss
+        boxes1_area = (boxes1[..., 2] - boxes1[..., 0]) * (boxes1[..., 3] - boxes1[..., 1])  # [2, s, s, 3]
+        boxes2_area = (boxes2[..., 2] - boxes2[..., 0]) * (boxes2[..., 3] - boxes2[..., 1])  # [2, s, s, 3]
 
-        # ====== Calculate IOU ======
-        boxes1_area = (boxes1[..., 2] - boxes1[..., 0]) * (boxes1[..., 3] - boxes1[..., 1])  # (x2-x1)*(y2-y1)
-        boxes2_area = (boxes2[..., 2] - boxes2[..., 0]) * (boxes2[..., 3] - boxes2[..., 1])
+        inter_left_up = torch.max(boxes1[..., :2], boxes2[..., :2])                          # [B, s, s, 3, 2]
+        inter_right_down = torch.min(boxes1[..., 2:], boxes2[..., 2:])                       # [B, s, s, 3, 2]
 
-        inter_left_up = torch.max(boxes1[..., :2], boxes2[..., :2])
-        inter_right_down = torch.min(boxes1[..., 2:], boxes2[..., 2:])
-
-        inter_section = torch.max(inter_right_down - inter_left_up, torch.zeros_like(inter_right_down))
+        inter_section = torch.max(inter_right_down - inter_left_up, torch.zeros_like(inter_right_down))  # [B, s, s, 3, 2]
         inter_area = inter_section[..., 0] * inter_section[..., 1]
-        union_area = boxes1_area + boxes2_area - inter_area
-        ious = 1.0 * inter_area / union_area
+        union_area = boxes1_area + boxes2_area - inter_area                                  # [B, s, s, 3]
+        ious = 1.0 * inter_area / union_area                                                 # [B, s, s, 3]
 
-        # ====== Calculate IOU ======
-        # cal outer boxes
-        outer_left_up = torch.min(boxes1[..., :2], boxes2[..., :2])
-        outer_right_down = torch.max(boxes1[..., 2:], boxes2[..., 2:])
-        outer = torch.max(outer_right_down - outer_left_up, torch.zeros_like(inter_right_down))
-        outer_diagonal_line = torch.pow(outer[..., 0], 2) + torch.pow(outer[..., 1], 2)
+        # iou_loss = 1 - ious
+        # return iou_loss
 
-        # cal center distance
-        boxes1_center = (boxes1[..., :2] + boxes1[..., 2:]) * 0.5
-        boxes2_center = (boxes2[..., :2] + boxes2[..., 2:]) * 0.5
-        center_dis = torch.pow(boxes1_center[..., 0] - boxes2_center[..., 0], 2) + \
-                     torch.pow(boxes1_center[..., 1] - boxes2_center[..., 1], 2)
+        outer_left_up = torch.min(boxes1[..., :2], boxes2[..., :2])                          # [B, s, s, 3, 2]
+        outer_right_down = torch.max(boxes1[..., 2:], boxes2[..., 2:])                       # [B, s, s, 3, 2]
+        outer_section = torch.max(outer_right_down - outer_left_up, torch.zeros_like(inter_right_down))
+        outer_area = outer_section[..., 0] * outer_section[..., 1]                           # [B, s, s, 3]
 
-        # cal penalty term
-        # cal width,height
-        boxes1_size = torch.max(boxes1[..., 2:] - boxes1[..., :2], torch.zeros_like(inter_right_down))  # w, h
-        boxes2_size = torch.max(boxes2[..., 2:] - boxes2[..., :2], torch.zeros_like(inter_right_down))  # w, h
+        giou = ious - (outer_area - union_area)/outer_area
+        giou_loss = 1 - giou
 
-        v = (4 / (math.pi ** 2)) * torch.pow(
-            torch.atan((boxes1_size[..., 0] / torch.clamp(boxes1_size[..., 1], min=1e-6))) -
-            torch.atan((boxes2_size[..., 0] / torch.clamp(boxes2_size[..., 1], min=1e-6))), 2)
-        alpha = v / (1 - ious + v)
+        return giou_loss
 
-        # cal ciou
-        cious = ious - (center_dis / outer_diagonal_line + alpha * v)
-
-        return cious
+        # area_c =
+        # # ====== Calculate IOU ======
+        # # cal outer boxes
+        # outer_left_up = torch.min(boxes1[..., :2], boxes2[..., :2])
+        # outer_right_down = torch.max(boxes1[..., 2:], boxes2[..., 2:])
+        # outer = torch.max(outer_right_down - outer_left_up, torch.zeros_like(inter_right_down))
+        # outer_diagonal_line = torch.pow(outer[..., 0], 2) + torch.pow(outer[..., 1], 2)
+        #
+        # # cal center distance
+        # boxes1_center = (boxes1[..., :2] + boxes1[..., 2:]) * 0.5
+        # boxes2_center = (boxes2[..., :2] + boxes2[..., 2:]) * 0.5
+        # center_dis = torch.pow(boxes1_center[..., 0] - boxes2_center[..., 0], 2) + \
+        #              torch.pow(boxes1_center[..., 1] - boxes2_center[..., 1], 2)
+        #
+        # # cal penalty term
+        # # cal width,height
+        # boxes1_size = torch.max(boxes1[..., 2:] - boxes1[..., :2], torch.zeros_like(inter_right_down))  # w, h
+        # boxes2_size = torch.max(boxes2[..., 2:] - boxes2[..., :2], torch.zeros_like(inter_right_down))  # w, h
+        #
+        # v = (4 / (math.pi ** 2)) * torch.pow(
+        #     torch.atan((boxes1_size[..., 0] / torch.clamp(boxes1_size[..., 1], min=1e-6))) -
+        #     torch.atan((boxes2_size[..., 0] / torch.clamp(boxes2_size[..., 1], min=1e-6))), 2)
+        # alpha = v / (1 - ious + v)
+        #
+        # # cal ciou
+        # cious = ious - (center_dis / outer_diagonal_line + alpha * v)
+        #
+        # return cious
 
     def forward(self, pred, gt_boxes, gt_labels):
         """
@@ -112,15 +128,15 @@ class Yolov3_Loss(nn.Module):
         gt_bbox_l, gt_bbox_m, gt_bbox_s = self.coder.decode((gt_bbox_l, gt_bbox_m, gt_bbox_s))
 
         # gt_iou3
-        gt_x1y1x2y2_l = cxcy_to_xy(gt_bbox_l)
-        gt_x1y1x2y2_m = cxcy_to_xy(gt_bbox_m)
-        gt_x1y1x2y2_s = cxcy_to_xy(gt_bbox_s)
+        gt_x1y1x2y2_l = cxcy_to_xy(gt_bbox_l)  # [B, 13, 13, 3, 4]
+        gt_x1y1x2y2_m = cxcy_to_xy(gt_bbox_m)  # [B, 26, 26, 3, 4]
+        gt_x1y1x2y2_s = cxcy_to_xy(gt_bbox_s)  # [B, 52, 52, 3, 4]
 
         # ----------------------- loss for larage -----------------------
         xy_loss_l = torch.mean((gt_prop_txty_l - pred_txty_l.cpu()) ** 2, dim=-1) * gt_objectness_l.squeeze(-1)
         wh_loss_l = torch.mean((gt_twth_l - pred_twth_l.cpu()) ** 2, dim=-1) * gt_objectness_l.squeeze(-1)
-        xy_loss_l = self.ciou_loss(gt_x1y1x2y2_l.cpu(), pred_x1y1x2y2_l.cpu()) * gt_objectness_l.squeeze(-1)
-        wh_loss_l = self.ciou_loss(gt_x1y1x2y2_l.cpu(), pred_x1y1x2y2_l.cpu()) * gt_objectness_l.squeeze(-1)
+        xy_loss_l = self.giou_loss(gt_x1y1x2y2_l.cpu(), pred_x1y1x2y2_l.cpu()) * gt_objectness_l.squeeze(-1)
+        wh_loss_l = self.giou_loss(gt_x1y1x2y2_l.cpu(), pred_x1y1x2y2_l.cpu()) * gt_objectness_l.squeeze(-1)
 
         obj_loss_l = gt_objectness_l * self.bce(pred_objectness_l.cpu(), gt_objectness_l)
         no_obj_loss_l = (1 - gt_objectness_l) * self.bce(pred_objectness_l.cpu(),
@@ -130,8 +146,8 @@ class Yolov3_Loss(nn.Module):
         # ----------------------- loss for medium -----------------------
         xy_loss_m = torch.mean((gt_prop_txty_m - pred_txty_m.cpu()) ** 2, dim=-1) * gt_objectness_m.squeeze(-1)
         wh_loss_m = torch.mean((gt_twth_m - pred_twth_m.cpu()) ** 2, dim=-1) * gt_objectness_m.squeeze(-1)
-        xy_loss_m = self.ciou_loss(gt_x1y1x2y2_m.cpu(), pred_x1y1x2y2_m.cpu()) * gt_objectness_m.squeeze(-1)
-        wh_loss_m = self.ciou_loss(gt_x1y1x2y2_m.cpu(), pred_x1y1x2y2_m.cpu()) * gt_objectness_m.squeeze(-1)
+        xy_loss_m = self.giou_loss(gt_x1y1x2y2_m.cpu(), pred_x1y1x2y2_m.cpu()) * gt_objectness_m.squeeze(-1)
+        wh_loss_m = self.giou_loss(gt_x1y1x2y2_m.cpu(), pred_x1y1x2y2_m.cpu()) * gt_objectness_m.squeeze(-1)
 
         obj_loss_m = gt_objectness_m * self.bce(pred_objectness_m.cpu(), gt_objectness_m)
         no_obj_loss_m = (1 - gt_objectness_m) * self.bce(pred_objectness_m.cpu(),
@@ -141,8 +157,8 @@ class Yolov3_Loss(nn.Module):
         # ----------------------- loss for small -----------------------
         xy_loss_s = torch.mean((gt_prop_txty_s - pred_txty_s.cpu()) ** 2, dim=-1) * gt_objectness_s.squeeze(-1)
         wh_loss_s = torch.mean((gt_twth_s - pred_twth_s.cpu()) ** 2, dim=-1) * gt_objectness_s.squeeze(-1)
-        xy_loss_s = self.ciou_loss(gt_x1y1x2y2_s.cpu(), pred_x1y1x2y2_s.cpu()) * gt_objectness_s.squeeze(-1)
-        wh_loss_s = self.ciou_loss(gt_x1y1x2y2_s.cpu(), pred_x1y1x2y2_s.cpu()) * gt_objectness_s.squeeze(-1)
+        xy_loss_s = self.giou_loss(gt_x1y1x2y2_s.cpu(), pred_x1y1x2y2_s.cpu()) * gt_objectness_s.squeeze(-1)
+        wh_loss_s = self.giou_loss(gt_x1y1x2y2_s.cpu(), pred_x1y1x2y2_s.cpu()) * gt_objectness_s.squeeze(-1)
 
         obj_loss_s = gt_objectness_s * self.bce(pred_objectness_s.cpu(), gt_objectness_s)
         no_obj_loss_s = (1 - gt_objectness_s) * self.bce(pred_objectness_s.cpu(),
@@ -160,86 +176,6 @@ class Yolov3_Loss(nn.Module):
 
         total_loss = xy_loss + wh_loss + obj_loss + no_obj_loss + cls_loss
         return total_loss, (xy_loss, wh_loss, obj_loss, no_obj_loss, cls_loss)
-
-    def forward_(self, pred, gt_boxes, gt_labels):
-        """
-        :param pred_targets_1: (B, 13, 13, 255)
-        :param pred_targets_2: (B, 26, 26, 255)
-        :param pred_targets_3: (B, 52, 52, 255)
-
-        :param pred_xy_1 : (B, 13, 13, 2)
-        :param pred_wh_1 : (B, 13, 13, 2)
-
-        :param gt_boxes:     (B, 4)
-        :param gt_labels:    (B)
-        :return:
-        """
-        batch_size = len(gt_labels)
-        pred_targets_1, pred_targets_2, pred_targets_3 = pred
-
-        # Scale 1
-        out_size_1 = pred_targets_1.size(1)  # 13, 13
-        pred_targets_1 = pred_targets_1.view(-1, out_size_1, out_size_1, 3, 5 + self.num_classes)
-        pred_txty_1 = pred_targets_1[..., :2].sigmoid()  # 0, 1 sigmoid(tx, ty) -> bx, by
-        pred_twth_1 = pred_targets_1[..., 2:4]
-        pred_objectness_1 = pred_targets_1[..., 4].unsqueeze(-1).sigmoid()  # 4        class probability
-        pred_classes_1 = pred_targets_1[..., 5:].sigmoid()  # 20 / 80  classes
-
-        # Scale 2
-        out_size_2 = pred_targets_2.size(1)
-        pred_targets_2 = pred_targets_2.view(-1, out_size_2, out_size_2, 3, 5 + self.num_classes)
-        pred_txty_2 = pred_targets_2[..., :2].sigmoid()  # 0, 1 sigmoid(tx, ty) -> bx, by
-        pred_twth_2 = pred_targets_2[..., 2:4]
-        pred_objectness_2 = pred_targets_2[..., 4].unsqueeze(-1).sigmoid()  # 4        class probability
-        pred_classes_2 = pred_targets_2[..., 5:].sigmoid()  # 20 / 80  classes
-
-        # Scale 3
-        out_size_3 = pred_targets_3.size(1)
-        pred_targets_3 = pred_targets_3.view(-1, out_size_3, out_size_3, 3, 5 + self.num_classes)
-        pred_txty_3 = pred_targets_3[..., :2].sigmoid()  # 0, 1 sigmoid(tx, ty) -> bx, by
-        pred_twth_3 = pred_targets_3[..., 2:4]
-        pred_objectness_3 = pred_targets_3[..., 4].unsqueeze(-1).sigmoid()  # 4        class probability
-        pred_classes_3 = pred_targets_3[..., 5:].sigmoid()  # 20 / 80  classes
-
-        # for each scale [gt를 pred의 형식과 맞춘다]
-        various_targets = self.coder.build_target(gt_boxes, gt_labels)
-        gt_prop_txty_1, gt_twth_1, gt_objectness_1, gt_classes_1, ignore_mask_1 = various_targets[0]
-        gt_prop_txty_2, gt_twth_2, gt_objectness_2, gt_classes_2, ignore_mask_2 = various_targets[1]
-        gt_prop_txty_3, gt_twth_3, gt_objectness_3, gt_classes_3, ignore_mask_3 = various_targets[2]
-
-
-        # gt_prop_txty_1, gt_twth_1, gt_objectness_1, gt_classes_1, ignore_mask_1 = self.coder.encode(1, gt_boxes, gt_labels)
-        # gt_prop_txty_2, gt_twth_2, gt_objectness_2, gt_classes_2, ignore_mask_2 = self.coder.encode(2, gt_boxes, gt_labels)
-        # gt_prop_txty_3, gt_twth_3, gt_objectness_3, gt_classes_3, ignore_mask_3 = self.coder.encode(3, gt_boxes, gt_labels)
-
-        # loss 1
-        xy_loss_1 = torch.mean((gt_prop_txty_1 - pred_txty_1.cpu()) ** 2, dim=-1) * gt_objectness_1.squeeze(-1)
-        wh_loss_1 = torch.mean((gt_twth_1 - pred_twth_1.cpu()) ** 2, dim=-1) * gt_objectness_1.squeeze(-1)
-        obj_loss_1 = gt_objectness_1 * self.bce(pred_objectness_1.cpu(), gt_objectness_1)
-        no_obj_loss_1 = (1 - gt_objectness_1) * self.bce(pred_objectness_1.cpu(), gt_objectness_1) * ignore_mask_1.unsqueeze(-1)
-        classes_loss_1 = gt_objectness_1 * self.bce(pred_classes_1.cpu(), gt_classes_1)
-
-        # loss 2
-        xy_loss_2 = torch.mean((gt_prop_txty_2 - pred_txty_2.cpu()) ** 2, dim=-1) * gt_objectness_2.squeeze(-1)
-        wh_loss_2 = torch.mean((gt_twth_2 - pred_twth_2.cpu()) ** 2, dim=-1) * gt_objectness_2.squeeze(-1)
-        obj_loss_2 = gt_objectness_2 * self.bce(pred_objectness_2.cpu(), gt_objectness_2)
-        no_obj_loss_2 = (1 - gt_objectness_2) * self.bce(pred_objectness_2.cpu(), gt_objectness_2) * ignore_mask_2.unsqueeze(-1)
-        classes_loss_2 = gt_objectness_2 * self.bce(pred_classes_2.cpu(), gt_classes_2)
-
-        # loss 3
-        xy_loss_3 = torch.mean((gt_prop_txty_3 - pred_txty_3.cpu()) ** 2, dim=-1) * gt_objectness_3.squeeze(-1)
-        wh_loss_3 = torch.mean((gt_twth_3 - pred_twth_3.cpu()) ** 2, dim=-1) * gt_objectness_3.squeeze(-1)
-        obj_loss_3 = gt_objectness_3 * self.bce(pred_objectness_3.cpu(), gt_objectness_3)
-        no_obj_loss_3 = (1 - gt_objectness_3) * self.bce(pred_objectness_3.cpu(), gt_objectness_3) * ignore_mask_3.unsqueeze(-1)
-        classes_loss_3 = gt_objectness_3 * self.bce(pred_classes_3.cpu(), gt_classes_3)
-
-        loss1 = 5 * (xy_loss_1.sum() + xy_loss_2.sum() + xy_loss_3.sum()) / batch_size
-        loss2 = 5 * (wh_loss_1.sum() + wh_loss_2.sum() + wh_loss_3.sum()) / batch_size
-        loss3 = 1 * (obj_loss_1.sum() + obj_loss_2.sum() + obj_loss_3.sum()) / batch_size
-        loss4 = 0.5 * (no_obj_loss_1.sum() + no_obj_loss_2.sum() + no_obj_loss_3.sum()) / batch_size
-        loss5 = 1 * (classes_loss_1.sum() + classes_loss_2.sum() + classes_loss_3.sum()) / batch_size
-
-        return loss1 + loss2 + loss3 + loss4 + loss5, (loss1, loss2, loss3, loss4, loss5)
 
 
 if __name__ == "__main__":
@@ -286,7 +222,4 @@ if __name__ == "__main__":
              torch.Tensor([39, 61]).to(device)]
 
     loss = criterion((pred1_, pred2_, pred3_), gt, label)
-    loss2 = criterion.forward_((pred1_, pred2_, pred3_), gt, label)
-
     print("loss : ", loss)
-    print("loss2 : ", loss2)
