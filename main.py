@@ -4,7 +4,7 @@ from dataset.coco_dataset import COCO_Dataset
 import visdom
 from train import train
 from test import test
-from torch.optim.lr_scheduler import MultiStepLR
+from torch.optim.lr_scheduler import MultiStepLR, CosineAnnealingLR
 from model import YOLOv4, CSPDarknet53
 
 import os
@@ -72,6 +72,7 @@ def main():
 
     # 9. scheduler
     scheduler = MultiStepLR(optimizer=optimizer, milestones=[218, 246], gamma=0.1)
+    scheduler = CosineAnnealingLR(optimizer=optimizer, T_max=opts.epoch)
 
     # 10. resume
     if opts.start_epoch != 0:
