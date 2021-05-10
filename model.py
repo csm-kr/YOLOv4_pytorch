@@ -4,6 +4,8 @@ import os
 import sys
 import numpy as np
 import torch.nn.functional as F
+import wget
+from utils import bar_custom
 
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 from config import device
@@ -196,6 +198,15 @@ class CSPDarknet53(nn.Module):
         self.num_features = num_features
 
         if pretrained:
+
+            os.makedirs(os.path.dirname(weight_path), exist_ok=True)
+            if not os.path.exists(os.path.join(weight_path)):
+                yolov4_url = "https://github.com/AlexeyAB/darknet/releases/download/darknet_yolo_v3_optimal/yolov4.weights"
+                wget.download(url=yolov4_url, out=os.path.dirname(weight_path), bar=bar_custom)
+                print('')
+            else:
+                print("YOLOv4 weight already exist!")
+
             self.load_CSPDarknet_weights(weight_path)
         # else:
         #     print("Need Darknet Weights")
