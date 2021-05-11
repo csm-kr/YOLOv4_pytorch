@@ -9,23 +9,7 @@
 - [x] burn-in 하기
 - [x] scheduler 확립하기
  
-### Experiment
-
-- [x] Model 추가
-
-|methods                   | Traning Dataset        |    Testing Dataset     | Resolution | AP      |AP50   |AP75    | Time | Fps  |
-|--------------------------|------------------------| ---------------------- | ---------- | ------- |-------|--------|:----:| ---- |
-|papers                    | COCOtrain2017          |  COCO test-dev         | 416 x 416  |  31.0   |55.3   |34.4    |29    |34.48 |
-|papers                    | COCOtrain2017          |  COCOval2017(minival)  | 416 x 416  |  -      |-      |-       |-     |-     |
-|yolov3 + CSP              | COCOtrain2017          |  COCO test-dev         | 416 x 416  |- |-   |-|-|- |
-|yolov3 + CSP              | COCOtrain2017          |  COCOval2017(minival)  | 416 x 416  |**38.0** |59.9  |40.8   |||
-|yolov3 + CSP + giou loss  | COCOtrain2017          |  COCO test-dev         | 416 x 416  |? |? |?  |||
-|yolov3 + CSP + giou loss  | COCOtrain2017          |  COCOval2017(minival)  | 416 x 416  |? |? |?   |||
-
-
-268 epoch 기준
-
-### scheduler
+ ### scheduler
 
 - we use step LR scheduler and learning rate warmup(burning) scheme 
 
@@ -49,3 +33,24 @@
 - dataset : coco
 - epoch : 273
 - gpu : nvidia geforce rtx 3090 * 2EA
+ 
+### Experiment
+
+268
+
+265
+
+- [x] Model 추가
+
+|methods                   | Traning Dataset        |    Testing Dataset     | Resolution | AP      |AP50   |AP75    | Time | Fps  |
+|--------------------------|------------------------| ---------------------- | ---------- | ------- |-------|--------|:----:| ---- |
+|papers                    | COCOtrain2017          |  COCO test-dev         | 416 x 416  |  31.0   |55.3   |34.4    |29    |34.48 |
+|papers                    | COCOtrain2017          |  COCOval2017(minival)  | 416 x 416  |  -      |-      |-       |-     |-     |
+|yolov3 + CSP              | COCOtrain2017          |  COCO test-dev         | 416 x 416  |- |-   |-|-|- |
+|yolov3 + CSP              | COCOtrain2017          |  COCOval2017(minival)  | 416 x 416  |**38.0** |59.9  |40.8   |||
+|yolov3 + CSP + giou loss  | COCOtrain2017          |  COCO test-dev         | 416 x 416  |? |? |?  |||
+|yolov3 + CSP + giou loss  | COCOtrain2017          |  COCOval2017(minival)  | 416 x 416  |? |? |?   |||
+
+
+
+

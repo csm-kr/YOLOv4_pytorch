@@ -270,8 +270,9 @@ class YOLOv4_Coder(Coder):
         pred_conf = torch.cat([pred_conf_l, pred_conf_m, pred_conf_s], dim=1)                # [B, 10647]
 
         # make pred boxes and pred scores using conditional prob concepts
-        pred_bboxes = cxcy_to_xy(pred_bbox).squeeze()
-        pred_scores = (pred_cls * pred_conf.unsqueeze(-1)).squeeze()
+        # The role of squeeze(0) is to remove batch dimension
+        pred_bboxes = cxcy_to_xy(pred_bbox).squeeze(0)                                       # [10647, 4]
+        pred_scores = (pred_cls * pred_conf.unsqueeze(-1)).squeeze(0)                        # [10647, num_classes]
 
         return pred_bboxes, pred_scores
 
