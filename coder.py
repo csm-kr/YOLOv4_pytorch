@@ -47,7 +47,7 @@ class YOLOv4_Coder(Coder):
         self.center_anchor_m = self.center_anchor_m.to('cpu')
         self.center_anchor_s = self.center_anchor_s.to('cpu')
 
-    def build_target(self, gt_boxes, gt_labels):
+    def build_target(self, gt_boxes, gt_labels, IT=None):
 
         batch_size = len(gt_labels)
 
@@ -134,65 +134,106 @@ class YOLOv4_Coder(Coder):
                 # iou_anchors_gt_m[..., n_obj]  # [26 ,26 ,3, # obj] --> [26, 26, 3]
                 # iou_anchors_gt_s[..., n_obj]  # [52 ,52 ,3, # obj] --> [52, 52, 3]
 
-                # find best anchor
-                best_idx = torch.FloatTensor(
-                    [iou_anchors_gt_l[..., n_obj].max(),
-                     iou_anchors_gt_m[..., n_obj].max(),
-                     iou_anchors_gt_s[..., n_obj].max()]).argmax()
+                if IT is not None:
 
-                if best_idx == 0:
+                    # large part
                     cx, cy = bxby_l[n_obj]
                     cx = int(cx)
                     cy = int(cy)
-
-                    max_iou, max_idx = iou_anchors_gt_l[cy, cx, :, n_obj].max(0)  # which anchor has maximum iou?
-                    # print("max_iou : ", max_iou)
-                    j = max_idx  # j is idx.
-                    # # j-th anchor
+                    boolean_idx = iou_anchors_gt_l[cy, cx, :, n_obj] > IT           # which anchor is larger than 0.5 ?
+                    # this type is boolean and it can be used as indeices
+                    j = boolean_idx.to(device)
                     gt_objectness_l[b, cy, cx, j, 0] = 1
                     gt_prop_txty_l[b, cy, cx, j, :] = proportion_of_xy_l[n_obj]
-
-                    ratio_of_wh_l = bwbh_l[n_obj] / torch.from_numpy(np.array(self.anchor_whs["large"][j]) / 32). \
-                        to(device)
-
-                    gt_twth_l[b, cy, cx, j, :] = torch.log(ratio_of_wh_l)
+                    ratio_of_wh_l = bwbh_l[n_obj] / torch.from_numpy(np.array(self.anchor_whs["large"])[j.cpu()] / 32).to(device)
+                    gt_twth_l[b, cy, cx, j, :] = torch.log(ratio_of_wh_l).type(torch.float32)
                     gt_classes_l[b, cy, cx, j, int(label[n_obj].item())] = 1
 
-                elif best_idx == 1:
+                    # medium part
                     cx, cy = bxby_m[n_obj]
                     cx = int(cx)
                     cy = int(cy)
-
-                    max_iou, max_idx = iou_anchors_gt_m[cy, cx, :, n_obj].max(0)  # which anchor has maximum iou?
-                    # print("max_iou : ", max_iou)
-                    j = max_idx  # j is idx.
-                    # # j-th anchor
+                    boolean_idx = iou_anchors_gt_m[cy, cx, :, n_obj] > IT
+                    j = boolean_idx.to(device)
                     gt_objectness_m[b, cy, cx, j, 0] = 1
                     gt_prop_txty_m[b, cy, cx, j, :] = proportion_of_xy_m[n_obj]
-
-                    ratio_of_wh_m = bwbh_m[n_obj] / torch.from_numpy(np.array(self.anchor_whs["middle"][j]) / 16). \
-                        to(device)
-
-                    gt_twth_m[b, cy, cx, j, :] = torch.log(ratio_of_wh_m)
+                    ratio_of_wh_m = bwbh_m[n_obj] / torch.from_numpy(np.array(self.anchor_whs["middle"])[j.cpu()] / 16).to(device)
+                    gt_twth_m[b, cy, cx, j, :] = torch.log(ratio_of_wh_m).type(torch.float32)
                     gt_classes_m[b, cy, cx, j, int(label[n_obj].item())] = 1
 
-                elif best_idx == 2:
+                    # small part
                     cx, cy = bxby_s[n_obj]
                     cx = int(cx)
                     cy = int(cy)
-
-                    max_iou, max_idx = iou_anchors_gt_s[cy, cx, :, n_obj].max(0)  # which anchor has maximum iou?
-                    # print("max_iou : ", max_iou)
-                    j = max_idx  # j is idx.
-                    # # j-th anchor
+                    boolean_idx = iou_anchors_gt_s[cy, cx, :, n_obj] > IT
+                    j = boolean_idx.to(device)
                     gt_objectness_s[b, cy, cx, j, 0] = 1
                     gt_prop_txty_s[b, cy, cx, j, :] = proportion_of_xy_s[n_obj]
-
-                    ratio_of_wh_s = bwbh_s[n_obj] / torch.from_numpy(np.array(self.anchor_whs["small"][j]) / 8). \
-                        to(device)
-
-                    gt_twth_s[b, cy, cx, j, :] = torch.log(ratio_of_wh_s)
+                    ratio_of_wh_s = bwbh_s[n_obj] / torch.from_numpy(np.array(self.anchor_whs["small"])[j.cpu()] / 8).to(device)
+                    gt_twth_s[b, cy, cx, j, :] = torch.log(ratio_of_wh_s).type(torch.float32)
                     gt_classes_s[b, cy, cx, j, int(label[n_obj].item())] = 1
+
+                else:
+
+                    # find best anchor
+                    best_idx = torch.FloatTensor(
+                        [iou_anchors_gt_l[..., n_obj].max(),
+                         iou_anchors_gt_m[..., n_obj].max(),
+                         iou_anchors_gt_s[..., n_obj].max()]).argmax()
+
+                    if best_idx == 0:
+                        cx, cy = bxby_l[n_obj]
+                        cx = int(cx)
+                        cy = int(cy)
+
+                        max_iou, max_idx = iou_anchors_gt_l[cy, cx, :, n_obj].max(0)  # which anchor has maximum iou?
+                        # print("max_iou : ", max_iou)
+                        j = max_idx  # j is idx.
+                        # # j-th anchor
+                        gt_objectness_l[b, cy, cx, j, 0] = 1
+                        gt_prop_txty_l[b, cy, cx, j, :] = proportion_of_xy_l[n_obj]
+
+                        ratio_of_wh_l = bwbh_l[n_obj] / torch.from_numpy(np.array(self.anchor_whs["large"][j]) / 32). \
+                            to(device)
+
+                        gt_twth_l[b, cy, cx, j, :] = torch.log(ratio_of_wh_l)
+                        gt_classes_l[b, cy, cx, j, int(label[n_obj].item())] = 1
+
+                    elif best_idx == 1:
+                        cx, cy = bxby_m[n_obj]
+                        cx = int(cx)
+                        cy = int(cy)
+
+                        max_iou, max_idx = iou_anchors_gt_m[cy, cx, :, n_obj].max(0)  # which anchor has maximum iou?
+                        # print("max_iou : ", max_iou)
+                        j = max_idx  # j is idx.
+                        # # j-th anchor
+                        gt_objectness_m[b, cy, cx, j, 0] = 1
+                        gt_prop_txty_m[b, cy, cx, j, :] = proportion_of_xy_m[n_obj]
+
+                        ratio_of_wh_m = bwbh_m[n_obj] / torch.from_numpy(np.array(self.anchor_whs["middle"][j]) / 16). \
+                            to(device)
+
+                        gt_twth_m[b, cy, cx, j, :] = torch.log(ratio_of_wh_m)
+                        gt_classes_m[b, cy, cx, j, int(label[n_obj].item())] = 1
+
+                    elif best_idx == 2:
+                        cx, cy = bxby_s[n_obj]
+                        cx = int(cx)
+                        cy = int(cy)
+
+                        max_iou, max_idx = iou_anchors_gt_s[cy, cx, :, n_obj].max(0)  # which anchor has maximum iou?
+                        # print("max_iou : ", max_iou)
+                        j = max_idx  # j is idx.
+                        # # j-th anchor
+                        gt_objectness_s[b, cy, cx, j, 0] = 1
+                        gt_prop_txty_s[b, cy, cx, j, :] = proportion_of_xy_s[n_obj]
+
+                        ratio_of_wh_s = bwbh_s[n_obj] / torch.from_numpy(np.array(self.anchor_whs["small"][j]) / 8). \
+                            to(device)
+
+                        gt_twth_s[b, cy, cx, j, :] = torch.log(ratio_of_wh_s)
+                        gt_classes_s[b, cy, cx, j, int(label[n_obj].item())] = 1
 
                 # ignore_mask
                 ignore_mask_l[b] = (iou_anchors_gt_l.max(-1)[0] < 0.5)
