@@ -20,9 +20,6 @@ class Anchor(metaclass=ABCMeta):
 class YOLOv4_Anchor(Anchor):
     def __init__(self):
         super().__init__()
-        # self.anchor_whs = [(1.3221, 1.73145), (3.19275, 4.00944), (5.05587, 8.09892), (9.47112, 4.84053), (11.2364, 10.0071)]
-        #self.anchors_whs = [(10, 13), (16, 30), (33, 23), (30, 61), (62, 45), (59, 119), (116,90), (156, 198), (373, 326)]
-
         self.anchor_whs = {"small": [(10, 13), (16, 30), (33, 23)],
                            "middle": [(30, 61), (62, 45), (59, 119)],
                            "large": [(116, 90), (156, 198), (373, 326)]}
@@ -43,23 +40,6 @@ class YOLOv4_Anchor(Anchor):
         center_anchors_numpy = np.array(center_anchors).astype(np.float32)                          # to numpy  [845, 4]
         center_anchors_tensor = torch.from_numpy(center_anchors_numpy)                              # to tensor [845, 4]
         center_anchors_tensor = center_anchors_tensor.view(grid_size, grid_size, 3, 4).to(device)   # [13, 13, 5, 4]
-
-        # Anchor (X, Y)
-        # FIXME
-        # grid_arange = np.arange(grid_size)
-        # xx, yy = np.meshgrid(grid_arange, grid_arange)
-        # d1 = np.expand_dims(xx, axis=-1)
-        # d2 = np.expand_dims(yy, axis=-1)
-        # m_grid = np.concatenate([d1, d2], axis=-1)
-        # m_grid = m_grid + 0.5                               # (13,13,2)
-        # xy = torch.from_numpy(m_grid)
-        #
-        # # Get xy & wh
-        # xy = xy.view(grid_size, grid_size, 1, 2).expand(grid_size, grid_size, 3, 2).type(torch.float32)  # centor ([13,13,2]=>[13,13,3,2])
-        # wh = wh.view(1, 1, 3, 2).expand(grid_size, grid_size, 3, 2).type(torch.float32)  # w, h ([5,2]=>[13,13,3,2])
-        # center_anchors = torch.cat([xy, wh], dim=3).to(device)
-        #
-        # print(torch.equal(center_anchors, center_anchors_tensor))
         return center_anchors_tensor
 
     def create_anchors(self):

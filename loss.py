@@ -47,35 +47,6 @@ class YOLOv4_Loss(nn.Module):
 
         return giou_loss
 
-        # area_c =
-        # # ====== Calculate IOU ======
-        # # cal outer boxes
-        # outer_left_up = torch.min(boxes1[..., :2], boxes2[..., :2])
-        # outer_right_down = torch.max(boxes1[..., 2:], boxes2[..., 2:])
-        # outer = torch.max(outer_right_down - outer_left_up, torch.zeros_like(inter_right_down))
-        # outer_diagonal_line = torch.pow(outer[..., 0], 2) + torch.pow(outer[..., 1], 2)
-        #
-        # # cal center distance
-        # boxes1_center = (boxes1[..., :2] + boxes1[..., 2:]) * 0.5
-        # boxes2_center = (boxes2[..., :2] + boxes2[..., 2:]) * 0.5
-        # center_dis = torch.pow(boxes1_center[..., 0] - boxes2_center[..., 0], 2) + \
-        #              torch.pow(boxes1_center[..., 1] - boxes2_center[..., 1], 2)
-        #
-        # # cal penalty term
-        # # cal width,height
-        # boxes1_size = torch.max(boxes1[..., 2:] - boxes1[..., :2], torch.zeros_like(inter_right_down))  # w, h
-        # boxes2_size = torch.max(boxes2[..., 2:] - boxes2[..., :2], torch.zeros_like(inter_right_down))  # w, h
-        #
-        # v = (4 / (math.pi ** 2)) * torch.pow(
-        #     torch.atan((boxes1_size[..., 0] / torch.clamp(boxes1_size[..., 1], min=1e-6))) -
-        #     torch.atan((boxes2_size[..., 0] / torch.clamp(boxes2_size[..., 1], min=1e-6))), 2)
-        # alpha = v / (1 - ious + v)
-        #
-        # # cal ciou
-        # cious = ious - (center_dis / outer_diagonal_line + alpha * v)
-        #
-        # return cious
-
     def forward(self, pred, gt_boxes, gt_labels):
         """
            :param pred_targets_1: (B, 13, 13, 255)
@@ -113,7 +84,7 @@ class YOLOv4_Loss(nn.Module):
         pred_x1y1x2y2_s = cxcy_to_xy(pred_bbox_s)
 
         # target 만들기
-        various_targets = self.coder.build_target(gt_boxes, gt_labels)
+        various_targets = self.coder.build_target(gt_boxes, gt_labels, IT=0.5)
         gt_prop_txty_l, gt_twth_l, gt_objectness_l, gt_classes_l, ignore_mask_l = various_targets[0]
         gt_prop_txty_m, gt_twth_m, gt_objectness_m, gt_classes_m, ignore_mask_m = various_targets[1]
         gt_prop_txty_s, gt_twth_s, gt_objectness_s, gt_classes_s, ignore_mask_s = various_targets[2]
