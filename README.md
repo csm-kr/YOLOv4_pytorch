@@ -72,14 +72,15 @@
     batch_size = 64
     optimizer = SGD
     lr decay = step LR [218, 246]
-    best_epch = 265
+    best_epoch = 265
     ```
 
     |experiments    | Dataset | Resolution |  base detector           | AP     |AP50   |AP75   |
     |---------------|---------| ---------- | ------------------------ | ------ |-------|-------|
     |exp1           | minival | 416 x 416  | yolov3 + CSP             |**38.0**|59.9   |40.8   |
 
-- experiments2 (~21.05.24)
+
+- experiments2 (~21.05.24-16:33)
 
     yolov3 + CSP + GIoULoss
     
@@ -90,16 +91,17 @@
     batch_size = 64
     optimizer = SGD
     lr decay = step LR [218, 246]
+    best_epoch = 272
     ```
 
     |experiments    | Dataset | Resolution |  base detector           | AP     |AP50   |AP75   |
     |---------------|---------| ---------- | ------------------------ | ------ |-------|-------|
-    |exp2           | minival | 416 x 416  | yolov3 + CSP + GIoU      |**39.0**|??   |??   |
+    |exp2           | minival | 416 x 416  | yolov3 + CSP + GIoU      |0.398   |0.602  |0.426  |
    
 
 - experiments3
 
-    yolov3 + CSP + GIoULoss + IT(Iou threshold) + M(Mosaic) + OA(Optimized Anchor) 
+    yolov3 + CSP + GIoULoss + IT(Iou threshold) + cosine annealing lr scheduler
     
     ```
     lr = 1e-3
@@ -112,5 +114,5 @@
 
     |experiments    | Dataset | Resolution |  base detector                         | AP     |AP50   |AP75   |
     |---------------|---------| ---------- | -------------------------------------- | ------ |-------|-------|
-    |exp3           | minival | 512 x 512  | yolov3 + CSP + GIoU + IT + M + OA      |-|-|-|
-    |YOLOv4         | COCO test-dev | 512 x 512 | YOLOv4                            |0.430   |0.649  |0.465  |
+    |exp3           | minival | 416 x 416  | yolov3 + CSP + GIoU + IT + M + OA      |-|-|-|
+    |YOLOv4         | COCO test-dev | 416 x 416 | YOLOv4                            |0.430   |0.649  |0.465  |
