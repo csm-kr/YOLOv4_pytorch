@@ -54,22 +54,22 @@ class YOLOv4_Coder(Coder):
         # ---------------- 1. container 만들기 ----------------
         # large target container
         ignore_mask_l = torch.zeros([batch_size, 13, 13, 3])
-        gt_prop_txty_l = torch.zeros([batch_size, 13, 13, 3, 2])    # a proportion between (0 ~ 1) in a cell
-        gt_twth_l = torch.zeros([batch_size, 13, 13, 3, 2])     # ratio of gt box and anchor box
+        gt_prop_txty_l = torch.zeros([batch_size, 13, 13, 3, 2]).to(device)  # a proportion between (0 ~ 1) in a cell
+        gt_twth_l = torch.zeros([batch_size, 13, 13, 3, 2]).to(device)     # ratio of gt box and anchor box
         gt_objectness_l = torch.zeros([batch_size, 13, 13, 3, 1])   # maximum iou anchor (a obj assign a anc)
         gt_classes_l = torch.zeros([batch_size, 13, 13, 3, self.num_classes])   # one-hot encoded class label
 
         # middle target container
         ignore_mask_m = torch.zeros([batch_size, 26, 26, 3])
-        gt_prop_txty_m = torch.zeros([batch_size, 26, 26, 3, 2])    # a proportion between (0 ~ 1) in a cell
-        gt_twth_m = torch.zeros([batch_size, 26, 26, 3, 2])     # ratio of gt box and anchor box
+        gt_prop_txty_m = torch.zeros([batch_size, 26, 26, 3, 2]).to(device)    # a proportion between (0 ~ 1) in a cell
+        gt_twth_m = torch.zeros([batch_size, 26, 26, 3, 2]).to(device)     # ratio of gt box and anchor box
         gt_objectness_m = torch.zeros([batch_size, 26, 26, 3, 1])   # maximum iou anchor (a obj assign a anc)
         gt_classes_m = torch.zeros([batch_size, 26, 26, 3, self.num_classes])   # one-hot encoded class label
 
         # small target container
         ignore_mask_s = torch.zeros([batch_size, 52, 52, 3])
-        gt_prop_txty_s = torch.zeros([batch_size, 52, 52, 3, 2])    # a proportion between (0 ~ 1) in a cell
-        gt_twth_s = torch.zeros([batch_size, 52, 52, 3, 2])     # ratio of gt box and anchor box
+        gt_prop_txty_s = torch.zeros([batch_size, 52, 52, 3, 2]).to(device)    # a proportion between (0 ~ 1) in a cell
+        gt_twth_s = torch.zeros([batch_size, 52, 52, 3, 2]).to(device)     # ratio of gt box and anchor box
         gt_objectness_s = torch.zeros([batch_size, 52, 52, 3, 1])   # maximum iou anchor (a obj assign a anc)
         gt_classes_s = torch.zeros([batch_size, 52, 52, 3, self.num_classes])   # one-hot encoded class label
 

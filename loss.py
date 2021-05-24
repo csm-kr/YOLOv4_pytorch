@@ -104,8 +104,8 @@ class YOLOv4_Loss(nn.Module):
         gt_x1y1x2y2_s = cxcy_to_xy(gt_bbox_s)  # [B, 52, 52, 3, 4]
 
         # ----------------------- loss for larage -----------------------
-        xy_loss_l = torch.mean((gt_prop_txty_l - pred_txty_l.cpu()) ** 2, dim=-1) * gt_objectness_l.squeeze(-1)
-        wh_loss_l = torch.mean((gt_twth_l - pred_twth_l.cpu()) ** 2, dim=-1) * gt_objectness_l.squeeze(-1)
+        # xy_loss_l = torch.mean((gt_prop_txty_l.cpu() - pred_txty_l.cpu()) ** 2, dim=-1) * gt_objectness_l.squeeze(-1)
+        # wh_loss_l = torch.mean((gt_twth_l.cpu() - pred_twth_l.cpu()) ** 2, dim=-1) * gt_objectness_l.squeeze(-1)
         xy_loss_l = self.giou_loss(gt_x1y1x2y2_l.cpu(), pred_x1y1x2y2_l.cpu()) * gt_objectness_l.squeeze(-1)
         wh_loss_l = self.giou_loss(gt_x1y1x2y2_l.cpu(), pred_x1y1x2y2_l.cpu()) * gt_objectness_l.squeeze(-1)
 
@@ -115,8 +115,8 @@ class YOLOv4_Loss(nn.Module):
         classes_loss_l = gt_objectness_l * self.bce(pred_classes_l.cpu(), gt_classes_l)
 
         # ----------------------- loss for medium -----------------------
-        xy_loss_m = torch.mean((gt_prop_txty_m - pred_txty_m.cpu()) ** 2, dim=-1) * gt_objectness_m.squeeze(-1)
-        wh_loss_m = torch.mean((gt_twth_m - pred_twth_m.cpu()) ** 2, dim=-1) * gt_objectness_m.squeeze(-1)
+        # xy_loss_m = torch.mean((gt_prop_txty_m.cpu() - pred_txty_m.cpu()) ** 2, dim=-1) * gt_objectness_m.squeeze(-1)
+        # wh_loss_m = torch.mean((gt_twth_m.cpu() - pred_twth_m.cpu()) ** 2, dim=-1) * gt_objectness_m.squeeze(-1)
         xy_loss_m = self.giou_loss(gt_x1y1x2y2_m.cpu(), pred_x1y1x2y2_m.cpu()) * gt_objectness_m.squeeze(-1)
         wh_loss_m = self.giou_loss(gt_x1y1x2y2_m.cpu(), pred_x1y1x2y2_m.cpu()) * gt_objectness_m.squeeze(-1)
 
@@ -126,8 +126,8 @@ class YOLOv4_Loss(nn.Module):
         classes_loss_m = gt_objectness_m * self.bce(pred_classes_m.cpu(), gt_classes_m)
 
         # ----------------------- loss for small -----------------------
-        xy_loss_s = torch.mean((gt_prop_txty_s - pred_txty_s.cpu()) ** 2, dim=-1) * gt_objectness_s.squeeze(-1)
-        wh_loss_s = torch.mean((gt_twth_s - pred_twth_s.cpu()) ** 2, dim=-1) * gt_objectness_s.squeeze(-1)
+        # xy_loss_s = torch.mean((gt_prop_txty_s.cpu() - pred_txty_s.cpu()) ** 2, dim=-1) * gt_objectness_s.squeeze(-1)
+        # wh_loss_s = torch.mean((gt_twth_s.cpu() - pred_twth_s.cpu()) ** 2, dim=-1) * gt_objectness_s.squeeze(-1)
         xy_loss_s = self.giou_loss(gt_x1y1x2y2_s.cpu(), pred_x1y1x2y2_s.cpu()) * gt_objectness_s.squeeze(-1)
         wh_loss_s = self.giou_loss(gt_x1y1x2y2_s.cpu(), pred_x1y1x2y2_s.cpu()) * gt_objectness_s.squeeze(-1)
 
