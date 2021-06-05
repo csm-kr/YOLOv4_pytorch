@@ -110,9 +110,31 @@
     batch_size = 64
     optimizer = SGD
     lr decay = cosine annealing lr scheduler
+    best_epoch = 264
+ 
     ```
 
     |experiments    | Dataset | Resolution |  base detector                         | AP     |AP50   |AP75   |
     |---------------|---------| ---------- | -------------------------------------- | ------ |-------|-------|
-    |exp3           | minival | 416 x 416  | yolov3 + CSP + GIoU + IT + M + OA      |-|-|-|
+    |exp3           | minival | 416 x 416  | yolov3 + CSP + GIoU + IT + M + OA      |0.363   |0.529  |0.394  |
     |YOLOv4         | COCO test-dev | 416 x 416 | YOLOv4                            |0.430   |0.649  |0.465  |
+
+
+- experiments4
+    Is the cosine-annealing-lr-scheduler better?
+    yolov3 + CSP + GIoULoss + cosine annealing lr scheduler
+    
+    ```
+    lr = 1e-3
+    epoch = 273 
+    burn_in = 4000
+    batch_size = 64
+    optimizer = SGD
+    lr decay = cosine annealing lr scheduler
+    best_epoch = ?
+ 
+    ```
+
+    |experiments    | Dataset | Resolution |  base detector                         | AP     |AP50   |AP75   |
+    |---------------|---------| ---------- | -------------------------------------- | ------ |-------|-------|
+    |exp4           | minival | 416 x 416  | yolov3 + CSP + GIoU + IT + M + OA      |-   |-  |-  |
