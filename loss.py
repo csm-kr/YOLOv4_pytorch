@@ -84,7 +84,7 @@ class YOLOv4_Loss(nn.Module):
         pred_x1y1x2y2_s = cxcy_to_xy(pred_bbox_s)
 
         # target 만들기
-        various_targets = self.coder.build_target(gt_boxes, gt_labels, IT=0.5)
+        various_targets = self.coder.build_target(gt_boxes, gt_labels, IT=None)
         gt_prop_txty_l, gt_twth_l, gt_objectness_l, gt_classes_l, ignore_mask_l = various_targets[0]
         gt_prop_txty_m, gt_twth_m, gt_objectness_m, gt_classes_m, ignore_mask_m = various_targets[1]
         gt_prop_txty_s, gt_twth_s, gt_objectness_s, gt_classes_s, ignore_mask_s = various_targets[2]

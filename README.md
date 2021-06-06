@@ -45,14 +45,14 @@
 
 - [x] Model 추가
 
-|methods                   | Traning Dataset        |    Testing Dataset     | Resolution | AP      |AP50   |AP75    | Time | Fps  |
-|--------------------------|------------------------| ---------------------- | ---------- | ------- |-------|--------|:----:| ---- |
-|papers(YOLOv3)            | COCOtrain2017          |  COCO test-dev         | 416 x 416  |  31.0   |55.3   |34.4    |29    |34.48 |
+|methods                   | Traning Dataset        |    Testing Dataset     | Resolution | AP       |AP50      |AP75      | Time | Fps  |
+|--------------------------|------------------------| ---------------------- | ---------- |----------|----------|----------|:----:| ---- |
+|papers(YOLOv3)            | COCOtrain2017          |  COCO test-dev         | 416 x 416  |0.310     |0.553     |0.344     |29    |34.48 |
 |papers                    | COCOtrain2017          |  COCOval2017(minival)  | 416 x 416  |  -      |-      |-       |-     |-     |
 |yolov3 + CSP              | COCOtrain2017          |  COCO test-dev         | 416 x 416  |- |-   |-|-|- |
-|yolov3 + CSP              | COCOtrain2017          |  COCOval2017(minival)  | 416 x 416  |**38.0** |59.9  |40.8   |||
-|yolov3 + CSP + giou loss  | COCOtrain2017          |  COCO test-dev         | 416 x 416  |? |? |?  |||
-|yolov3 + CSP + giou loss  | COCOtrain2017          |  COCOval2017(minival)  | 416 x 416  |39.xx|? |?   |||
+|yolov3 + CSP              | COCOtrain2017          |  COCOval2017(minival)  | 416 x 416  |0.380 |59.9  |40.8   |||
+|yolov3 + CSP + giou loss  | COCOtrain2017          |  COCO test-dev         | 416 x 416  |-     |-    |-     |||
+|yolov3 + CSP + giou loss  | COCOtrain2017          |  COCOval2017(minival)  | 416 x 416  |0.398     |0.602     |0.426     |||
 |YOLOv4                    | COCOtrain2017          |  COCO test-dev         | 416 x 416  |0.412|0.628|0.448|||
 |YOLOv4                    | COCOtrain2017          |  COCO test-dev         | 512 x 512  |0.430|0.649|0.465|||
 
@@ -121,8 +121,9 @@
 
 
 - experiments4
-    Is the cosine-annealing-lr-scheduler better?
-    yolov3 + CSP + GIoULoss + cosine annealing lr scheduler
+    Is the cosine-annealing-lr-scheduler better than step LR?
+    loss.py 87 line set IT=None
+    yolov3 + CSP + GIoULoss + CA(cosine annealing lr scheduler)
     
     ```
     lr = 1e-3
@@ -137,4 +138,4 @@
 
     |experiments    | Dataset | Resolution |  base detector                         | AP     |AP50   |AP75   |
     |---------------|---------| ---------- | -------------------------------------- | ------ |-------|-------|
-    |exp4           | minival | 416 x 416  | yolov3 + CSP + GIoU + IT + M + OA      |-   |-  |-  |
+    |exp4           | minival | 416 x 416  | yolov3 + CSP + GIoU + CA               |-   |-  |-  |
