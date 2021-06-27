@@ -7,7 +7,7 @@ from pycocotools.coco import COCO
 from torch.utils.data import DataLoader, Dataset
 import numpy as np
 import torch
-from dataset.trasform import transform
+from dataset.trasform import transform, transform_mosaic
 from config import device
 import matplotlib
 import matplotlib.pyplot as plt
@@ -131,7 +131,7 @@ class COCO_Dataset(Dataset):
 
     def __getitem__(self, index):
 
-        visualize = False
+        visualize = True
 
         # --------------------------- load data ---------------------------
         # 1. image_id
@@ -155,13 +155,21 @@ class COCO_Dataset(Dataset):
         labels = torch.LongTensor(det_anno[:, 4])
 
         # --------------------------- for transform ---------------------------
-        transform_list = ['photo', 'expand', 'crop', 'flip', 'resize']
+        # transform_list = ['photo', 'expand', 'crop', 'flip', 'resize']
+        transform_list = ['photo', 'expand', 'crop', 'flip', 'resize', 'mosaic']
 
         zero_to_one_coord = False
         if 'resize' in transform_list:
             zero_to_one_coord = True
 
-        image, boxes, labels = transform(image, boxes, labels, self.split, transform_list, self.resize, zero_to_one_coord)
+        # image, boxes, labels = transform(image, boxes, labels, self.split, transform_list, self.resize, zero_to_one_coord)
+        image, boxes, labels = transform_mosaic(image, boxes, labels, self.split, transform_list, self.resize,
+                                                len_of_dataset=len(self.img_id),
+                                                parser=self.make_det_annos,
+                                                root=self.root,
+                                                coco=self.coco,
+                                                set_name=self.set_name,
+                                                zero_to_one_coord=zero_to_one_coord)
 
         if visualize:
 

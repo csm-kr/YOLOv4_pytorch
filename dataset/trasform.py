@@ -3,6 +3,7 @@ import sys
 import torch
 import random
 import torchvision.transforms.functional as FT
+from PIL import Image
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 from utils import find_jaccard_overlap
 from config import device
@@ -263,3 +264,207 @@ def transform(image, boxes, labels, split, transform_list, new_size, zero_to_one
     new_image = FT.normalize(new_image, mean=mean, std=std)
 
     return new_image, new_boxes, new_labels
+
+
+def mosaic(images, boxes, labels, size):
+    new_image_0, new_image_1, new_image_2, new_image_3 = images
+    new_boxes_0, new_boxes_1, new_boxes_2, new_boxes_3 = boxes
+    new_labels_0, new_labels_1, new_labels_2, new_labels_3 = labels
+
+    # Image to tensor
+    new_image_0 = FT.to_tensor(new_image_0)
+    new_image_1 = FT.to_tensor(new_image_1)
+    new_image_2 = FT.to_tensor(new_image_2)
+    new_image_3 = FT.to_tensor(new_image_3)
+
+    new_image_0, new_boxes_0, new_labels_0 = random_crop(new_image_0, new_boxes_0, new_labels_0)
+    new_image_1, new_boxes_1, new_labels_1 = random_crop(new_image_1, new_boxes_1, new_labels_1)
+    new_image_2, new_boxes_2, new_labels_2 = random_crop(new_image_2, new_boxes_2, new_labels_2)
+    new_image_3, new_boxes_3, new_labels_3 = random_crop(new_image_3, new_boxes_3, new_labels_3)
+
+    # tensor to Image
+    new_image_0 = FT.to_pil_image(new_image_0)
+    new_image_1 = FT.to_pil_image(new_image_1)
+    new_image_2 = FT.to_pil_image(new_image_2)
+    new_image_3 = FT.to_pil_image(new_image_3)
+
+    new_size = size//2
+    new_image_0, new_boxes_0 = resize(new_image_0, new_boxes_0, (new_size, new_size), False)
+    new_image_1, new_boxes_1 = resize(new_image_1, new_boxes_1, (new_size, new_size), False)
+    new_image_2, new_boxes_2 = resize(new_image_2, new_boxes_2, (new_size, new_size), False)
+    new_image_3, new_boxes_3 = resize(new_image_3, new_boxes_3, (new_size, new_size), False)
+
+    # bbox 바꾸는 부분
+    new_boxes_1[:, 0] = new_boxes_1[:, 0] + new_size
+    new_boxes_1[:, 2] = new_boxes_1[:, 2] + new_size
+
+    new_boxes_2[:, 1] = new_boxes_2[:, 1] + new_size
+    new_boxes_2[:, 3] = new_boxes_2[:, 3] + new_size
+
+    new_boxes_3[:, 0] = new_boxes_3[:, 0] + new_size
+    new_boxes_3[:, 1] = new_boxes_3[:, 1] + new_size
+    new_boxes_3[:, 2] = new_boxes_3[:, 2] + new_size
+    new_boxes_3[:, 3] = new_boxes_3[:, 3] + new_size
+
+    # 합치는 부분 - imgae - pil level 에서 합침 refer to https://note.nkmk.me/en/python-pillow-concat-images/
+    new_image_01 = get_concat_h_cut_center(new_image_0, new_image_1)
+    new_image_23 = get_concat_h_cut_center(new_image_2, new_image_3)
+    new_image = get_concat_v_cut_center(new_image_01, new_image_23)
+    new_boxes = torch.cat([new_boxes_0, new_boxes_1, new_boxes_2, new_boxes_3], dim=0)
+    new_labels = torch.cat([new_labels_0, new_labels_1, new_labels_2, new_labels_3], dim=0)
+
+    return new_image, new_boxes, new_labels
+
+
+def get_concat_h_cut_center(im1, im2):
+    dst = Image.new('RGB', (im1.width + im2.width, min(im1.height, im2.height)))
+    dst.paste(im1, (0, 0))
+    dst.paste(im2, (im1.width, (im1.height - im2.height) // 2))
+    return dst
+
+
+def get_concat_v_cut_center(im1, im2):
+    dst = Image.new('RGB', (min(im1.width, im2.width), im1.height + im2.height))
+    dst.paste(im1, (0, 0))
+    dst.paste(im2, ((im1.width - im2.width) // 2, im1.height))
+    return dst
+
+
+def transform_mosaic(image, boxes, labels, split, transform_list, new_size,
+                     len_of_dataset,
+                     parser,
+                     root=None,       # coco
+                     coco=None,       # coco
+                     set_name=None,   # coco
+                     img_list=None,   # voc
+                     anno_list=None,  # voc
+                     zero_to_one_coord=True):
+
+    allowed_tf_list = ['photo', 'expand', 'crop', 'flip', 'resize', 'mosaic']
+    assert split in {'train', 'test'}
+    for tf in transform_list:
+        assert tf in allowed_tf_list
+
+    mean = [0.485, 0.456, 0.406]
+    std = [0.229, 0.224, 0.225]
+
+    if 'mosaic' in transform_list:
+        # 1. index 구하기
+        idx_mosaic_1 = random.randint(0, len_of_dataset - 1)
+        idx_mosaic_2 = random.randint(0, len_of_dataset - 1)
+        idx_mosaic_3 = random.randint(0, len_of_dataset - 1)
+
+        # 2. image open 하기
+        # coco
+        if coco is not None:
+            img_id_list = list(coco.imgToAnns.keys())
+
+            img_id_1 = img_id_list[idx_mosaic_1]
+            file_name_1 = coco.loadImgs(ids=img_id_1)[0]['file_name']
+            file_path_1 = os.path.join(root, 'images', set_name, file_name_1)
+
+            img_id_2 = img_id_list[idx_mosaic_2]
+            file_name_2 = coco.loadImgs(ids=img_id_2)[0]['file_name']
+            file_path_2 = os.path.join(root, 'images', set_name, file_name_2)
+
+            img_id_3 = img_id_list[idx_mosaic_3]
+            file_name_3 = coco.loadImgs(ids=img_id_3)[0]['file_name']
+            file_path_3 = os.path.join(root, 'images', set_name, file_name_3)
+
+            # make anno
+            anno_ids_1 = coco.getAnnIds(imgIds=img_id_1)  # img id 에 해당하는 anno id 를 가져온다.
+            anno_1 = coco.loadAnns(ids=anno_ids_1)  # anno id 에 해당하는 annotation 을 가져온다.
+
+            anno_ids_2 = coco.getAnnIds(imgIds=img_id_2)  # img id 에 해당하는 anno id 를 가져온다.
+            anno_2 = coco.loadAnns(ids=anno_ids_2)  # anno id 에 해당하는 annotation 을 가져온다.
+
+            anno_ids_3 = coco.getAnnIds(imgIds=img_id_3)  # img id 에 해당하는 anno id 를 가져온다.
+            anno_3 = coco.loadAnns(ids=anno_ids_3)  # anno id 에 해당하는 annotation 을 가져온다.
+
+        # voc
+        else:
+            file_path_1 = img_list[idx_mosaic_1]
+            file_path_2 = img_list[idx_mosaic_2]
+            file_path_3 = img_list[idx_mosaic_3]
+
+        new_image_1 = Image.open(file_path_1).convert('RGB')
+        new_image_2 = Image.open(file_path_2).convert('RGB')
+        new_image_3 = Image.open(file_path_3).convert('RGB')
+
+        # 3. parsing 하기
+        # for voc
+        if anno_list is not None:
+            new_boxes_1, new_labels_1 = parser(anno_list[idx_mosaic_1])
+            new_boxes_1 = torch.FloatTensor(new_boxes_1)
+            new_labels_1 = torch.LongTensor(new_labels_1)  # 0 ~ 19
+
+            new_boxes_2, new_labels_2 = parser(anno_list[idx_mosaic_2])
+            new_boxes_2 = torch.FloatTensor(new_boxes_2)
+            new_labels_2 = torch.LongTensor(new_labels_2)  # 0 ~ 19
+
+            new_boxes_3, new_labels_3 = parser(anno_list[idx_mosaic_3])
+            new_boxes_3 = torch.FloatTensor(new_boxes_3)
+            new_labels_3 = torch.LongTensor(new_labels_3)  # 0 ~ 19
+
+        # for coco
+        else:
+            det_anno_1 = parser(anno_1)
+            new_boxes_1 = torch.FloatTensor(det_anno_1[:, :4])  # numpy to Tensor
+            new_labels_1 = torch.LongTensor(det_anno_1[:, 4])
+
+            det_anno_2 = parser(anno_2)
+            new_boxes_2 = torch.FloatTensor(det_anno_2[:, :4])  # numpy to Tensor
+            new_labels_2 = torch.LongTensor(det_anno_2[:, 4])
+
+            det_anno_3 = parser(anno_3)
+            new_boxes_3 = torch.FloatTensor(det_anno_3[:, :4])  # numpy to Tensor
+            new_labels_3 = torch.LongTensor(det_anno_3[:, 4])
+
+    new_image = image
+    new_boxes = boxes
+    new_labels = labels
+
+    # Skip the following operations for evaluation/testing
+    if split == 'train':
+
+        if 'mosaic' in transform_list:
+            if random.random() > 0.5:
+                images_ = (new_image, new_image_1, new_image_2, new_image_3)
+                boxes_ = (new_boxes, new_boxes_1, new_boxes_2, new_boxes_3)
+                labels_ = (new_labels, new_labels_1, new_labels_2, new_labels_3)
+                new_image, new_boxes, new_labels = mosaic(images_, boxes_, labels_, new_size)
+
+        if 'photo' in transform_list:
+            # A series of photometric distortions in random order, each with 50% chance of occurrence, as in Caffe repo
+            new_image = photometric_distort(new_image)
+
+        new_image = FT.to_tensor(new_image)
+
+        if 'expand' in transform_list:
+            each_img_mean = torch.mean(new_image, (1, 2))
+            # Expand image (zoom out)
+            if random.random() < 0.5:
+                new_image, new_boxes = expand(new_image, new_boxes, filler=each_img_mean)
+
+        if 'crop' in transform_list:
+            new_image, new_boxes, new_labels = random_crop(new_image, new_boxes, new_labels)
+
+        new_image = FT.to_pil_image(new_image)
+
+        if 'flip' in transform_list:
+            # Flip image with a 50% chance
+            if random.random() < 0.5:
+                new_image, new_boxes = flip(new_image, new_boxes)
+
+    if 'resize' in transform_list:
+        # Resize image to (300, 300) - this also converts absolute boundary coordinates to their fractional form
+        new_image, new_boxes = resize(new_image, new_boxes, (new_size, new_size), zero_to_one_coord)
+
+    # Convert PIL image to Torch tensor
+    new_image = FT.to_tensor(new_image)
+
+    # Normalize by mean and standard deviation of ImageNet data that our base VGG was trained on
+    new_image = FT.normalize(new_image, mean=mean, std=std)
+
+    return new_image, new_boxes, new_labels
+

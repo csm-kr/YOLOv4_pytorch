@@ -10,7 +10,7 @@ from PIL import Image
 import torch.utils.data as data
 from xml.etree.ElementTree import parse
 from matplotlib.patches import Rectangle
-from dataset.trasform import transform
+from dataset.trasform import transform, transform_mosaic
 from utils import bar_custom, voc_color_array
 from config import device
 
@@ -107,33 +107,42 @@ class VOC_Dataset(data.Dataset):
 
     def __getitem__(self, idx):
 
-        visualize = False
+        visualize = True
 
         # load img
         image = Image.open(self.img_list[idx]).convert('RGB')
         # load labels
         boxes, labels = self.parse_voc(self.anno_list[idx])
 
-        # load img name for string
-        img_name = os.path.basename(self.anno_list[idx]).split('.')[0]
-        img_name_to_ascii = [ord(c) for c in img_name]
+        if self.split == 'test':
 
-        # load img width and height
-        img_width, img_height = float(image.size[0]), float(image.size[1])
+            # load img name for string
+            img_name = os.path.basename(self.anno_list[idx]).split('.')[0]
+            img_name_to_ascii = [ord(c) for c in img_name]
+
+            # load img width and height
+            img_width, img_height = float(image.size[0]), float(image.size[1])
+            img_name = torch.FloatTensor([img_name_to_ascii])
+            additional_info = torch.FloatTensor([img_width, img_height])
 
         boxes = torch.FloatTensor(boxes)
         labels = torch.LongTensor(labels)  # 0 ~ 19
-        img_name = torch.FloatTensor([img_name_to_ascii])
-        additional_info = torch.FloatTensor([img_width, img_height])
 
-        transform_list = ['photo', 'expand', 'crop', 'flip', 'resize']
+        # --------------------------- for transform ---------------------------
+        # transform_list = ['photo', 'expand', 'crop', 'flip', 'resize']
+        transform_list = ['photo', 'expand', 'crop', 'flip', 'resize', 'mosaic']
 
         zero_to_one_coord = False
         if 'resize' in transform_list:
             zero_to_one_coord = True
 
-        image, boxes, labels = transform(image, boxes, labels, self.split, transform_list, self.resize, zero_to_one_coord)
-        # boxes = torch.clamp(boxes, 1e-3, 1 - 1e-3)
+        # image, boxes, labels = transform(image, boxes, labels, self.split, transform_list, self.resize, zero_to_one_coord)
+        image, boxes, labels = transform_mosaic(image, boxes, labels, self.split, transform_list, self.resize,
+                                                len_of_dataset=len(self.img_list),
+                                                parser=self.parse_voc,
+                                                img_list=self.img_list,
+                                                anno_list=self.anno_list,
+                                                zero_to_one_coord=zero_to_one_coord)
 
         if visualize:
             mean = np.array([0.485, 0.456, 0.406])
@@ -244,7 +253,7 @@ if __name__ == "__main__":
     ubuntu_root = "/home/cvmlserver3/Sungmin/data/voc"
     window_root = 'D:\data\\voc'
     root = window_root
-    train_set = VOC_Dataset(root, split='test', download=True, resize=416)
+    train_set = VOC_Dataset(root, split='train', download=True, resize=416)
     train_loader = torch.utils.data.DataLoader(train_set,
                                                batch_size=1,
                                                collate_fn=train_set.collate_fn,
