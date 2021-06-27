@@ -107,7 +107,7 @@ class VOC_Dataset(data.Dataset):
 
     def __getitem__(self, idx):
 
-        visualize = True
+        visualize = False
 
         # load img
         image = Image.open(self.img_list[idx]).convert('RGB')

@@ -131,7 +131,7 @@ class COCO_Dataset(Dataset):
 
     def __getitem__(self, index):
 
-        visualize = True
+        visualize = False
 
         # --------------------------- load data ---------------------------
         # 1. image_id
