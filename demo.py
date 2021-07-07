@@ -109,7 +109,6 @@ def demo(opts, coder, model, img_type='jpg'):
 
 if __name__ == '__main__':
 
-    from model_v3 import YoloV4, Darknet53
     from model import YOLOv4, CSPDarknet53
     from coder import YOLOv4_Coder
     import argparse
@@ -117,18 +116,16 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--epoch', type=int, default=265)
-    # parser.add_argument('--epoch', type=int, default=268)
+    parser.add_argument('--epoch', type=int, default=264)
 
     parser.add_argument('--save_path', type=str, default='./saves')
-    # parser.add_argument('--save_file_name', type=str, default='yolov4_darknet53_coco')
-    parser.add_argument('--save_file_name', type=str, default='yolov4_cspdarknet53_coco')
+    parser.add_argument('--save_file_name', type=str, default='yolov4_cspdarknet53_coco_exp5')
     parser.add_argument('--conf_thres', type=float, default=0.05)
 
     # parser.add_argument('--img_path', type=str, default='D:\data\\voc\VOCtest_06-Nov-2007\VOCdevkit\VOC2007\JPEGImages')
-    parser.add_argument('--img_path', type=str, default='D:\data\coco\images\\val2017')
+    # parser.add_argument('--img_path', type=str, default='D:\data\coco\images\\val2017')
     # parser.add_argument('--img_path', type=str, default='/home/cvmlserver3/Sungmin/data/voc/VOCtest_06-Nov-2007/VOCdevkit/VOC2007/JPEGImages')
-    # parser.add_argument('--img_path', type=str, default='/home/cvmlserver5/Sungmin/data/coco/images/val2017')
+    parser.add_argument('--img_path', type=str, default='/home/cvmlserver5/Sungmin/data/coco/images/val2017')
 
     parser.add_argument('--resize', type=int, default=416)
     parser.set_defaults(visualization=False)
@@ -144,7 +141,6 @@ if __name__ == '__main__':
     elif demo_opts.data_type == 'coco':
         demo_opts.n_classes = 80
 
-    # model = YoloV3(baseline=Darknet53(pretrained=False), num_classes=demo_opts.num_classes).to(device)
     model = YOLOv4(backbone=CSPDarknet53(pretrained=False), num_classes=demo_opts.num_classes).to(device)
     model = torch.nn.DataParallel(module=model, device_ids=device_ids)
 

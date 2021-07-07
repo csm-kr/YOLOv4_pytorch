@@ -139,3 +139,26 @@
     |experiments    | Dataset | Resolution |  base detector                         | AP     |AP50   |AP75   |
     |---------------|---------| ---------- | -------------------------------------- | ------ |-------|-------|
     |exp4           | minival | 416 x 416  | yolov3 + CSP + GIoU + CA               |0.403   |0.603  |0.432  |
+    
+
+
+- experiments5
+    Is the cosine-annealing-lr-scheduler better than step LR?
+    loss.py 87 line set IT=None
+    yolov3 + CSP + GIoULoss + CA(cosine annealing lr scheduler) + Mosaic
+    
+    ```
+    lr = 1e-3
+    epoch = 273 
+    burn_in = 4000
+    batch_size = 64
+    optimizer = SGD
+    lr decay = cosine annealing lr scheduler
+    best_epoch = 264
+ 
+    ```
+
+    |experiments    | Dataset | Resolution |  base detector                         | AP     |AP50   |AP75   |
+    |---------------|---------| ---------- | -------------------------------------- | ------ |-------|-------|
+    |exp5           | minival | 416 x 416  | yolov3 + CSP + GIoU + CA + Mosaic      |0.408   |0.612  |0.439  |
+    |exp5           | testdev | 416 x 416  | yolov3 + CSP + GIoU + CA + Mosaic      |0.408   |0.612  |0.438  |

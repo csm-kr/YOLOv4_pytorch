@@ -54,7 +54,6 @@ def main():
                                               num_workers=0,
                                               pin_memory=True)
     # 6. network
-    # model = YoloV3(baseline=Darknet53(pretrained=True), num_classes=opts.num_classes).to(device)
     model = YOLOv4(backbone=CSPDarknet53(pretrained=True), num_classes=opts.num_classes).to(device)
     model = torch.nn.DataParallel(model, device_ids=device_ids)
 

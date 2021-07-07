@@ -57,20 +57,20 @@ if __name__ == '__main__':
 
     from coco_test_dev.coco_test_dev_dataset import COCO_Test_Dev_Dataset
     from config import device, device_ids
-    from model import YoloV3, Darknet53
-    from coder import YOLOv3_Coder
+    from model import YOLOv4, CSPDarknet53
+    from coder import YOLOv4_Coder
     import argparse
 
     # 1. argparse
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--epoch', type=int, default=268)
+    parser.add_argument('--epoch', type=int, default=264)
     parser.add_argument('--save_path', type=str, default='../saves')
-    parser.add_argument('--save_file_name', type=str, default='yolov3_darknet53_coco')
+    parser.add_argument('--save_file_name', type=str, default='yolov4_cspdarknet53_coco_exp5')
     parser.add_argument('--conf_thres', type=float, default=0.05)
 
     parser.add_argument('--data_root', type=str, default='D:\data\coco')
-    #parser.add_argument('--data_root', type=str, default='/home/cvmlserver5/Sungmin/data/coco')
+    # parser.add_argument('--data_root', type=str, default='/home/cvmlserver5/Sungmin/data/coco')
 
     parser.add_argument('--resize', type=int, default=416)
     parser.add_argument('--visualization', type=bool, default=False)
@@ -96,9 +96,9 @@ if __name__ == '__main__':
                                               num_workers=0)
 
     # 6. network
-    model = YoloV3(Darknet53(pretrained=False), num_classes=test_opts.num_classes).to(device)
+    model = YOLOv4(backbone=CSPDarknet53(pretrained=False), num_classes=test_opts.num_classes).to(device)
     model = torch.nn.DataParallel(module=model, device_ids=device_ids)
-    coder = YOLOv3_Coder(test_opts)
+    coder = YOLOv4_Coder(test_opts)
 
     test_dev(epoch=test_opts.epoch,
              test_loader=test_loader,
