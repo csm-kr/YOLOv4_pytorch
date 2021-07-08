@@ -212,6 +212,11 @@ class CSPDarknet53(nn.Module):
         #     print("Need Darknet Weights")
         #     exit()
 
+        print("num_params : ", self.count_parameters())
+
+    def count_parameters(self):
+        return sum(p.numel() for p in self.parameters())
+
     def forward(self, x):
         x = self.stem_conv(x)
 
@@ -372,6 +377,45 @@ class PANet(nn.Module):
         self.feature_transform3 = Conv(
             feature_channels[0], feature_channels[0] // 2, 1
         )
+
+        self.feature_transform3_ = nn.Sequential(
+            nn.Conv2d(256, 128, 1, padding=0, stride=1, bias=False),
+            nn.BatchNorm2d(128),
+            nn.LeakyReLU(),
+        )
+
+        self.feature_transform4_ = nn.Sequential(
+            nn.Conv2d(512, 256, 1, padding=0, stride=1, bias=False),
+            nn.BatchNorm2d(256),
+            nn.LeakyReLU(),
+        )
+
+        self.upsample5_4 = nn.Sequential(
+            nn.Conv2d(512, 256, 1, padding=0, stride=1, bias=False),
+            nn.BatchNorm2d(256),
+            nn.LeakyReLU(),
+            nn.Upsample(scale_factor=2)
+        )
+
+        self.upsample4_3 = nn.Sequential(
+            nn.Conv2d(256, 128, 1, padding=0, stride=1, bias=False),
+            nn.BatchNorm2d(256),
+            nn.LeakyReLU(),
+            nn.Upsample(scale_factor=2)
+        )
+
+        self.downsample3_4 = nn.Sequential(
+            nn.Conv2d(128, 256, 1, padding=0, stride=1, bias=False),
+            nn.BatchNorm2d(256),
+            nn.LeakyReLU(),
+        )
+
+        self.downsample4_5 = nn.Sequential(
+            nn.Conv2d(256, 512, 1, padding=0, stride=1, bias=False),
+            nn.BatchNorm2d(512),
+            nn.LeakyReLU(),
+        )
+
         self.feature_transform4 = Conv(
             feature_channels[1], feature_channels[1] // 2, 1
         )
@@ -501,12 +545,44 @@ class PredictNet(nn.Module):
                 m.bias.data.zero_()
 
 
+class SPPNet(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        self.conv = nn.Sequential(
+            nn.Conv2d(1024, 512, 1, stride=1, padding=0, bias=False),
+            nn.BatchNorm2d(512),
+            Mish(),
+
+            nn.Conv2d(512, 1024, 3, stride=1, padding=1, bias=False),
+            nn.BatchNorm2d(1024),
+            Mish(),
+
+            nn.Conv2d(1024, 512, 1, stride=1, padding=0, bias=False),
+            nn.BatchNorm2d(512),
+            Mish(),
+        )
+
+        self.maxpool5 = nn.MaxPool2d(kernel_size=5, stride=1, padding=5 // 2)
+        self.maxpool9 = nn.MaxPool2d(kernel_size=9, stride=1, padding=9 // 2)
+        self.maxpool13 = nn.MaxPool2d(kernel_size=13, stride=1, padding=13 // 2)
+
+    def forward(self, x):
+        x = self.conv(x)  # torch.Size([1, 512, 16, 16])
+        maxpool5 = self.maxpool5(x)
+        maxpool9 = self.maxpool9(x)
+        maxpool13 = self.maxpool13(x)
+        x = torch.cat([x, maxpool5, maxpool9, maxpool13], dim=1)
+        return x
+
+
 class YOLOv4(nn.Module):
     def __init__(self, backbone, num_classes=80):
         super(YOLOv4, self).__init__()
         self.backbone = backbone
         feature_channels = backbone.feature_channels[-3:]  # [256, 512, 1024]
         self.SPP = SpatialPyramidPooling(feature_channels)
+        # self.SPP_ = SPPNet()
         self.PANet = PANet(feature_channels)
         self.predict_net = PredictNet(feature_channels, target_channels=3 * (num_classes + 5))
         print("num_params : ", self.count_parameters())
@@ -517,6 +593,7 @@ class YOLOv4(nn.Module):
     def forward(self, x):
         features = self.backbone(x)
         features[-1] = self.SPP(features[-1])
+
         features = self.PANet(features)
         predicts = self.predict_net(features)
         p1, p2, p3 = predicts
@@ -539,16 +616,16 @@ if __name__ == "__main__":
     for i, f in enumerate(test):
         print('{}_{}'.format(i, f.shape))
 
-    # # YOLOv4
-    # img_size = 416
-    # img = torch.randn([1, 3, img_size, img_size]).to(device)
-    # model = YoloV4(CSPDarknet53(pretrained=True)).to(device)
-    #
-    # p_l, p_m, p_s = model(img)
-    #
-    # print("large  : ", p_l.size())
-    # print("medium : ", p_m.size())
-    # print("small  : ", p_s.size())
+    # YOLOv4
+    img_size = 416
+    img = torch.randn([1, 3, img_size, img_size]).to(device)
+    model = YOLOv4(CSPDarknet53(pretrained=True)).to(device)
+
+    p_l, p_m, p_s = model(img)
+
+    print("large  : ", p_l.size())
+    print("medium : ", p_m.size())
+    print("small  : ", p_s.size())
 
     '''
     large  :  torch.Size([1, 13, 13, 255])
