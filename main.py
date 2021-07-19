@@ -71,7 +71,8 @@ def main():
 
     # 9. scheduler
     # scheduler = MultiStepLR(optimizer=optimizer, milestones=[218, 246], gamma=0.1)
-    scheduler = CosineAnnealingLR(optimizer=optimizer, T_max=opts.epoch)
+    # scheduler = CosineAnnealingLR(optimizer=optimizer, T_max=opts.epoch)
+    scheduler = CosineAnnealingLR(optimizer=optimizer, T_max=290)
 
     # 10. resume
     if opts.start_epoch != 0:

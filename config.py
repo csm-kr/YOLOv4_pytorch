@@ -18,7 +18,7 @@ def parse(args):
     parser.add_argument('--num_workers', type=int, default=4)
     parser.add_argument('--resize', type=int, help='320, 416, 608', default=416)
     parser.add_argument('--save_path', type=str, default='./saves')
-    parser.add_argument('--save_file_name', type=str, default='yolov4_cspdarknet53_coco_exp5')  # FIXME
+    parser.add_argument('--save_file_name', type=str, default='yolov4_cspdarknet53_coco_exp7')  # FIXME
     parser.add_argument('--conf_thres', type=float, default=0.05)
     parser.add_argument('--start_epoch', type=int, default=0)
 
