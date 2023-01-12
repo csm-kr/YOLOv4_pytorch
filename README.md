@@ -116,7 +116,7 @@
 
     |experiments    | Dataset | Resolution |  base detector                         | AP     |AP50   |AP75   |
     |---------------|---------| ---------- | -------------------------------------- | ------ |-------|-------|
-    |exp3           | minival | 416 x 416  | yolov3 + CSP + GIoU + IT + M + OA      |0.363   |0.529  |0.394  |
+    |exp3           | minival | 416 x 416  | yolov3 + CSP + GIoU + IT + M + CA      |0.363   |0.529  |0.394  |
     |YOLOv4         | COCO test-dev | 416 x 416 | YOLOv4                            |0.412   |0.628  |0.448  |
 
 
