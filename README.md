@@ -3,14 +3,13 @@
 ### TODO List
 
 - [x] Dataset
-- [ ] Model
-- [ ] Loss
-- [X] Coder
+- [x] Model
+- [x] Loss
+- [x] Coder
 - [x] burn-in 하기
-- [x] scheduler 확립하기
+- [x] scheduler 확립하기 (CA)
 - [x] IT
-- [ ] M(Mosaic augmentation)
-- [ ] OA(Optimized Anchors)
+- [x] M(Mosaic augmentation)
  
  ### scheduler
 
@@ -55,10 +54,7 @@
 |yolov3 + CSP + giou loss  | COCOtrain2017          |  COCOval2017(minival)  | 416 x 416  |0.398     |0.602     |0.426     |||
 |YOLOv4                    | COCOtrain2017          |  COCO test-dev         | 416 x 416  |0.412|0.628|0.448|||
 |YOLOv4                    | COCOtrain2017          |  COCO test-dev         | 512 x 512  |0.430|0.649|0.465|||
-
-
-- GIOU loss 서버실 확장 때문에 한번 끊었다가 감. 155 부터 시작하면 될듯 (2021/05/24 해결)
-![](./figure/giou_155_epochs.JPG)
+|OURs                      | COCOtrain2017          | COCOval2017(minival).  | 416 x 416  |0.410   |0.611  |0.439  |||
 
 
 - experiments1
