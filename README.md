@@ -6,8 +6,8 @@
 - [x] Model
 - [x] Loss
 - [x] Coder
-- [x] burn-in 하기
-- [x] scheduler 확립하기 (CA)
+- [x] burn-in 
+- [x] scheduler(Cosine Anneling)
 - [x] IT
 - [x] M(Mosaic augmentation)
  
@@ -24,7 +24,6 @@
 ### burn-in
 
 - batch 64 & iteration 1000
-
 - lr : 0 to 1e-3 (i/1000)
 
 ### trining
